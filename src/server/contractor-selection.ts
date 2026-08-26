@@ -116,15 +116,16 @@ export const contractorSelection = {
     reason,
     earliestAvailableAt,
     now,
+    requiredBy,
   }: RecordContractorUnavailableInput): {
     attempt: ContractorAttempt;
     decision: ContractorSelectionDecision;
   } {
-    const current = this.assess({ repair, agreements, now });
+    const current = this.assess({ repair, agreements, now, requiredBy });
     if (current.kind !== "preferred_available" || current.agreementId !== agreementId) {
       throw new Error("Check the next approved contractor before moving to a backup.");
     }
-    const agreement = eligibleAgreements({ repair, agreements, now }).find(
+    const agreement = eligibleAgreements({ repair, agreements, now, requiredBy }).find(
       (candidate) => candidate.id === agreementId,
     );
     if (!agreement) throw new Error("Approved contractor agreement not found for this repair.");
@@ -144,7 +145,7 @@ export const contractorSelection = {
 
     return {
       attempt,
-      decision: this.assess({ repair: updatedRepair, agreements, now }),
+      decision: this.assess({ repair: updatedRepair, agreements, now, requiredBy }),
     };
   },
 
@@ -184,9 +185,11 @@ export const contractorSelection = {
       requestedByManager,
       reason: requestedByManager
         ? `${requestedByManager} requested external options for this ${repair.severity} repair.`
-        : `${new Intl.ListFormat("en-GB", { style: "long", type: "conjunction" }).format(
-            repair.contractorAttempts.map((attempt) => attempt.contractorName),
-          )} cannot meet the required response time for this ${repair.severity} repair.`,
+        : repair.contractorAttempts.length > 0
+          ? `${new Intl.ListFormat("en-GB", { style: "long", type: "conjunction" }).format(
+              repair.contractorAttempts.map((attempt) => attempt.contractorName),
+            )} cannot meet the required response time for this ${repair.severity} repair.`
+          : `No eligible approved contractor can meet the required response time for this ${repair.severity} repair.`,
       searchBrief: {
         buildingId: repair.buildingId,
         trade: repair.trade,

@@ -91,6 +91,7 @@ export interface RepairCase {
     phone: string;
   };
   accessNotes?: string;
+  requiredBy?: string;
   createdAt: string;
   updatedAt: string;
   messages: RepairMessage[];
@@ -160,6 +161,7 @@ export interface TriageInput {
   severity: Severity;
   trade: Trade;
   accessNotes?: string;
+  requiredBy?: string;
 }
 
 export interface ProposalInput {

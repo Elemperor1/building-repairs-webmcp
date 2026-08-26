@@ -19,6 +19,7 @@ export const seedStore: AppStore = {
         phone: "+447700900123",
       },
       accessNotes: "Tenant can provide access after 3:00 pm.",
+      requiredBy: "2026-08-26T23:59:00.000Z",
       createdAt,
       updatedAt: "2026-08-26T11:52:00.000Z",
       messages: [
@@ -153,7 +154,7 @@ export const seedStore: AppStore = {
         startsAt: "07:00",
         endsAt: "22:00",
       },
-      responseMinutes: { routine: 1440, urgent: 240, emergency: 120 },
+      responseMinutes: { routine: 1440, urgent: 120, emergency: 120 },
       effectiveFrom: "2026-01-01",
       effectiveTo: "2026-12-31",
     },

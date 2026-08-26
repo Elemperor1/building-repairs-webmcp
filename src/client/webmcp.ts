@@ -44,6 +44,11 @@ const triageSchema = {
       description: "The repair trade needed to match the building's approved contractors.",
     },
     accessNotes: { type: "string", description: "When and how a contractor can get access." },
+    requiredBy: {
+      type: "string",
+      description:
+        "For urgent or emergency repairs, the latest acceptable response time as an ISO 8601 date-time.",
+    },
   },
   required: ["caseId", "title", "summary", "severity", "trade"],
   additionalProperties: false,
@@ -98,10 +103,11 @@ const externalSearchSchema = {
     caseId: { type: "string", description: "The repair case ID." },
     requiredBy: {
       type: "string",
-      description: "The latest acceptable response time as an ISO 8601 date-time.",
+      description:
+        "For urgent or emergency repairs, the latest acceptable response time as an ISO 8601 date-time. Omit it for routine repairs; the server uses the deadline stored with the manager's request.",
     },
   },
-  required: ["caseId", "requiredBy"],
+  required: ["caseId"],
   additionalProperties: false,
 } as const satisfies JsonSchemaForInference;
 
@@ -189,7 +195,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "triage_repair",
               description:
-                "Turn a new tenant text into a clear repair summary. Record the issue, severity, and access details using ordinary English.",
+                "Turn a new tenant text into a clear repair summary. Record the issue, severity, access details, and the response deadline for urgent or emergency repairs using ordinary English.",
               inputSchema: triageSchema,
               execute: async ({ caseId, ...input }) => {
                 const repair = await api.triage(caseId, input);

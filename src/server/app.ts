@@ -19,6 +19,7 @@ const triageSchema = z.object({
   severity: z.enum(["routine", "urgent", "emergency"]),
   trade: z.enum(["plumbing", "electrical", "heating", "locksmith", "general"]),
   accessNotes: z.string().optional(),
+  requiredBy: z.string().datetime().optional(),
 });
 
 const proposalSchema = z.object({
@@ -42,7 +43,7 @@ const contractorUnavailableSchema = z.object({
 });
 
 const externalSearchSchema = z.object({
-  requiredBy: z.string().datetime(),
+  requiredBy: z.string().datetime().optional(),
 });
 
 const externalSearchRequestSchema = z.object({

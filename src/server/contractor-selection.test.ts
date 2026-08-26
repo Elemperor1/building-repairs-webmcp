@@ -234,6 +234,20 @@ describe("contractor selection", () => {
     ).toThrow("An approved contractor can still meet the required response time.");
   });
 
+  it("explains fallback when no approved agreement can meet the deadline", () => {
+    const authorization = contractorSelection.startExternalSearch({
+      repair: repair({ severity: "urgent" }),
+      agreements: [agreement()],
+      requiredBy: "2026-08-26T13:30:00.000Z",
+      requestedByManager: undefined,
+      now: new Date("2026-08-26T12:30:00.000Z"),
+    });
+
+    expect(authorization.reason).toBe(
+      "No eligible approved contractor can meet the required response time for this urgent repair.",
+    );
+  });
+
   it("authorizes routine external search when a named property manager requests it", () => {
     const authorization = contractorSelection.startExternalSearch({
       repair: repair(),

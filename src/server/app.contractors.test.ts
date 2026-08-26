@@ -42,6 +42,55 @@ describe("contractor workflow HTTP interface", () => {
     });
   });
 
+  it("uses the triaged response deadline throughout preferred selection", async () => {
+    const inbound = await callApp("POST", "/api/sms/inbound", {
+      from: "+447700900779",
+      body: "Water is pouring from the kitchen pipe.",
+      tenantName: "Alex",
+      unit: "Flat 2D",
+    });
+    const created = inbound.body as { repair: { id: string } };
+    const requiredBy = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    await callApp("POST", `/api/cases/${created.repair.id}/triage`, {
+      title: "Kitchen pipe is leaking heavily",
+      summary: "An urgent plumbing repair with active water flow.",
+      severity: "urgent",
+      trade: "plumbing",
+      requiredBy,
+    });
+
+    const path = await callApp("GET", `/api/cases/${created.repair.id}/contractor-path`);
+    expect(path.body).toMatchObject({
+      decision: {
+        kind: "preferred_available",
+        agreementId: "agreement-hawthorn-plumbing-backup",
+        contractorName: "Riverside Plumbing",
+      },
+    });
+
+    const primaryProposal = await callApp(
+      "POST",
+      `/api/cases/${created.repair.id}/contractor-proposal`,
+      {
+        agreementId: "agreement-hawthorn-plumbing-primary",
+        timeWindow: "Today",
+        reason: "Try the primary anyway.",
+      },
+    );
+    expect(primaryProposal.status).toBe(409);
+
+    const backupProposal = await callApp(
+      "POST",
+      `/api/cases/${created.repair.id}/contractor-proposal`,
+      {
+        agreementId: "agreement-hawthorn-plumbing-backup",
+        timeWindow: "Within three hours",
+        reason: "The approved backup can meet the stored response deadline.",
+      },
+    );
+    expect(backupProposal.status).toBe(200);
+  });
+
   it("creates a preferred proposal from stored agreement terms", async () => {
     const response = await callApp("POST", "/api/cases/repair-1001/contractor-proposal", {
         agreementId: "agreement-hawthorn-plumbing-primary",
@@ -218,7 +267,7 @@ describe("contractor workflow HTTP interface", () => {
     const startResponse = await callApp(
       "POST",
       `/api/cases/${created.repair.id}/external-search`,
-      { requiredBy: "2026-08-29T12:00:00.000Z" },
+      {},
     );
 
     expect(startResponse.status).toBe(200);

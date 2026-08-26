@@ -77,7 +77,7 @@ export const api = {
     );
   },
 
-  async startExternalSearch(caseId: string, requiredBy: string) {
+  async startExternalSearch(caseId: string, requiredBy?: string) {
     return post<{ repair: RepairCase; authorization: unknown }>(
       `/api/cases/${caseId}/external-search`,
       { requiredBy },

@@ -103,6 +103,7 @@ export const repairStore = {
       repair,
       agreements: store.contractorAgreements,
       now: new Date(),
+      requiredBy: repair.requiredBy,
     });
   },
 
@@ -117,6 +118,7 @@ export const repairStore = {
       repair,
       agreements: store.contractorAgreements,
       now: new Date(),
+      requiredBy: repair.requiredBy,
     });
     if (decision.kind !== "preferred_available" || decision.agreementId !== input.agreementId) {
       throw new Error("Use the next eligible approved contractor for this repair.");
@@ -159,6 +161,7 @@ export const repairStore = {
       agreements: store.contractorAgreements,
       ...input,
       now: new Date(),
+      requiredBy: repair.requiredBy,
     });
     const updatedRepair = mutateCase(caseId, (selectedRepair) => {
       selectedRepair.contractorAttempts.push(update.attempt);
@@ -182,7 +185,7 @@ export const repairStore = {
 
   startExternalSearch(
     caseId: string,
-    input: { requiredBy: string },
+    input: { requiredBy?: string },
   ) {
     const store = readStore();
     const repair = store.cases.find((item) => item.id === caseId);
@@ -190,7 +193,10 @@ export const repairStore = {
     const managerRequest = repair.externalSearchRequest;
     const requiredBy = repair.severity === "routine" && managerRequest
       ? managerRequest.requiredBy
-      : input.requiredBy;
+      : repair.requiredBy ?? input.requiredBy;
+    if (!requiredBy) {
+      throw new Error("Urgent and emergency external search needs a response deadline.");
+    }
     const authorization = contractorSelection.startExternalSearch({
       repair,
       agreements: store.contractorAgreements,
@@ -271,6 +277,7 @@ export const repairStore = {
       repair.severity = input.severity;
       repair.trade = input.trade;
       repair.accessNotes = input.accessNotes;
+      repair.requiredBy = input.requiredBy;
       repair.activity.push(activity("Agent reviewed the repair", "agent", input.summary));
     });
   },
