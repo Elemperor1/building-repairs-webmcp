@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-26T00:00:00.000Z",
+  "title": "Design System: Building Repairs",
+  "extensions": {
+    "colorMeta": {
+      "dispatch-green": {
+        "role": "primary",
+        "displayName": "Dispatch Green",
+        "canonical": "oklch(0.4 0.106 150)",
+        "tonalRamp": ["oklch(0.15 0.04 150)", "oklch(0.26 0.07 150)", "oklch(0.35 0.1 150)", "oklch(0.45 0.106 150)", "oklch(0.57 0.09 150)", "oklch(0.7 0.07 150)", "oklch(0.83 0.05 150)", "oklch(0.95 0.025 150)"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Work Surface",
+        "canonical": "oklch(0.985 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.27 0 0)", "oklch(0.39 0 0)", "oklch(0.51 0 0)", "oklch(0.63 0 0)", "oklch(0.75 0 0)", "oklch(0.87 0 0)", "oklch(0.985 0 0)"]
+      },
+      "attention": {
+        "role": "secondary",
+        "displayName": "Approval Amber",
+        "canonical": "oklch(0.67 0.13 78)",
+        "tonalRamp": ["oklch(0.15 0.04 78)", "oklch(0.27 0.07 78)", "oklch(0.39 0.1 78)", "oklch(0.51 0.12 78)", "oklch(0.63 0.13 78)", "oklch(0.75 0.1 78)", "oklch(0.86 0.065 78)", "oklch(0.96 0.03 78)"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Immediate Red",
+        "canonical": "oklch(0.52 0.18 30)",
+        "tonalRamp": ["oklch(0.15 0.06 30)", "oklch(0.27 0.11 30)", "oklch(0.39 0.16 30)", "oklch(0.51 0.18 30)", "oklch(0.63 0.15 30)", "oklch(0.75 0.11 30)", "oklch(0.86 0.07 30)", "oklch(0.96 0.03 30)"]
+      }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Repair Headline", "purpose": "The selected repair title, not decorative display text." },
+      "title": { "displayName": "Panel Title", "purpose": "Queue, message, proposal, and activity headings." },
+      "body": { "displayName": "Operational Body", "purpose": "Repair summaries and explanations up to 68ch wide." },
+      "label": { "displayName": "Working Label", "purpose": "Compact actor, state, field, and action labels." }
+    },
+    "shadows": [
+      { "name": "temporary-feedback", "value": "0 4px 8px color-mix(in oklch, var(--color-ink) 20%, transparent)", "purpose": "Notices and error banners only; static panels remain flat." }
+    ],
+    "motion": [
+      { "name": "press", "value": "120ms cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Immediate 0.97 scale feedback for pointer actions." },
+      { "name": "state", "value": "160ms ease", "purpose": "Color and border changes for hover and selection." },
+      { "name": "feedback", "value": "180ms cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Notices and errors." },
+      { "name": "drawer", "value": "260ms cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "SMS test sheet only." }
+    ],
+    "breakpoints": [
+      { "name": "stack-activity", "value": "88rem" },
+      { "name": "hide-utility-rail", "value": "62rem" },
+      { "name": "mobile", "value": "46rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single clear decision on a case, such as Approve and book.",
+      "html": "<button class=\"ds-button-primary\">Approve and book</button>",
+      "css": ".ds-button-primary { min-height: 48px; padding: 0 20px; border: 1px solid var(--color-primary); border-radius: 8px; background: var(--color-primary); color: white; font: 720 .9rem/1.2 ui-sans-serif, sans-serif; transition: transform 120ms cubic-bezier(.23,1,.32,1), background-color 160ms ease; } .ds-button-primary:hover { background: var(--color-primary-hover); } .ds-button-primary:active { transform: scale(.97); } .ds-button-primary:focus-visible { outline: 3px solid color-mix(in oklch, var(--color-primary) 48%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A reversible supporting action, never a competing primary decision.",
+      "html": "<button class=\"ds-button-secondary\">Send note</button>",
+      "css": ".ds-button-secondary { min-height: 48px; padding: 0 20px; border: 1px solid var(--color-primary); border-radius: 8px; background: white; color: var(--color-primary); font: 720 .9rem/1.2 ui-sans-serif, sans-serif; transition: transform 120ms cubic-bezier(.23,1,.32,1), background-color 160ms ease; } .ds-button-secondary:hover { background: var(--color-primary-pale); } .ds-button-secondary:active { transform: scale(.97); } .ds-button-secondary:focus-visible { outline: 3px solid color-mix(in oklch, var(--color-primary) 48%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Message Field",
+      "kind": "input",
+      "description": "A familiar SMS composer with a direct recipient label.",
+      "html": "<input class=\"ds-message-field\" aria-label=\"Message to tenant\" placeholder=\"Message Maya…\">",
+      "css": ".ds-message-field { min-height: 48px; width: 100%; padding: 0 16px; border: 1px solid var(--color-border-strong); border-radius: 8px; background: white; color: var(--color-ink); font: 400 .88rem/1.5 ui-sans-serif, sans-serif; transition: border-color 160ms ease; } .ds-message-field:focus-visible { outline: 3px solid color-mix(in oklch, var(--color-primary) 48%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Selected Repair",
+      "kind": "card",
+      "refersTo": "repair-card-selected",
+      "description": "The current case in the repair queue.",
+      "html": "<button class=\"ds-repair-card\"><strong>Water leak under sink</strong><span>Maya · Flat 2B</span></button>",
+      "css": ".ds-repair-card { width: 100%; display: grid; gap: 8px; padding: 16px; border: 1px solid color-mix(in oklch, var(--color-primary) 32%, var(--color-border)); border-radius: 12px; background: var(--color-primary-pale); color: var(--color-ink); text-align: left; transition: transform 120ms cubic-bezier(.23,1,.32,1), background-color 160ms ease; } .ds-repair-card span { color: var(--color-muted); font-size: .82rem; } .ds-repair-card:hover { background: var(--color-primary-soft); } .ds-repair-card:active { transform: scale(.97); } .ds-repair-card:focus-visible { outline: 3px solid color-mix(in oklch, var(--color-primary) 48%, transparent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Agent Message",
+      "kind": "custom",
+      "refersTo": "message-agent",
+      "description": "A repair-agent message shown in the same conversation as tenant texts.",
+      "html": "<div class=\"ds-agent-message\"><p>Thanks. I’m arranging a plumber now.</p><time>10:42</time></div>",
+      "css": ".ds-agent-message { width: fit-content; max-width: 26rem; padding: 12px 14px 9px; border: 1px solid color-mix(in oklch, var(--color-primary) 24%, var(--color-border)); border-radius: 12px 8px 12px 12px; background: var(--color-primary-pale); color: var(--color-ink); font: 400 .88rem/1.5 ui-sans-serif, sans-serif; } .ds-agent-message p { margin: 0 0 8px; } .ds-agent-message time { display: block; color: var(--color-primary); font-size: .7rem; text-align: right; }"
+    },
+    {
+      "name": "Approval Status",
+      "kind": "chip",
+      "refersTo": "status-attention",
+      "description": "A consequential waiting state that names what the property manager must do.",
+      "html": "<span class=\"ds-status-attention\">Waiting for your approval</span>",
+      "css": ".ds-status-attention { display: inline-flex; align-items: center; min-height: 34px; padding: 8px 14px; border: 1px solid color-mix(in oklch, var(--color-attention) 38%, var(--color-border)); border-radius: 8px; background: var(--color-attention-pale); color: oklch(.37 .08 70); font: 690 .86rem/1.2 ui-sans-serif, sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Dispatch Desk",
+    "overview": "A quiet, structured operations desk where the repair queue, shared case record, and human approval trail stay visible. Agent work is auditable but never decorative, and every consequential action is named in ordinary English.",
+    "keyCharacteristics": ["restrained operational density", "plain-English hierarchy", "one obvious decision at a time", "familiar messaging patterns", "immediate quiet feedback"],
+    "rules": [
+      { "name": "The Restrained Green Rule", "body": "Dispatch Green appears only on current selection, primary action, focus, connected state, and confirmed success.", "section": "colors" },
+      { "name": "The Ordinary English Rule", "body": "Labels describe exactly what happens and never hide the result behind workflow jargon.", "section": "typography" },
+      { "name": "The Flat-by-Default Rule", "body": "Static work surfaces use tonal layering and borders; shadow is reserved for temporary feedback.", "section": "elevation" }
+    ],
+    "dos": ["Do make the active repair and required approval obvious.", "Do keep messages readable, familiar, and clearly attributed.", "Do use 100–220ms state transitions with strong ease-out curves."],
+    "donts": ["Don't make this look or behave like a generic SaaS demo.", "Don't add guided scenarios, fake metrics, marketing language, decorative dashboard filler, or simulated controls.", "Don't turn the product into a futuristic AI console.", "Don't use vague action labels when the real result can be named."]
+  }
+}
