@@ -11,6 +11,7 @@ interface CaseWorkspaceProps {
   onSendTenantMessage: (message: string) => Promise<void>;
   onSendManagerNote: (note: string) => Promise<void>;
   onApproveAndBook: () => Promise<void>;
+  onRequestExternalOptions: (requiredBy: string) => Promise<void>;
 }
 
 const statusCopy: Record<RepairCase["status"], string> = {
@@ -27,6 +28,7 @@ export function CaseWorkspace({
   onSendTenantMessage,
   onSendManagerNote,
   onApproveAndBook,
+  onRequestExternalOptions,
 }: CaseWorkspaceProps) {
   const [noteFocusToken, setNoteFocusToken] = useState(0);
   const urgent = repair.severity === "emergency";
@@ -52,6 +54,7 @@ export function CaseWorkspace({
             repair={repair}
             busy={busy}
             onApproveAndBook={onApproveAndBook}
+            onRequestExternalOptions={onRequestExternalOptions}
             onFocusAgentNote={() => setNoteFocusToken((value) => value + 1)}
           />
         </div>

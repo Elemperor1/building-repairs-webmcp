@@ -20,6 +20,18 @@ The dashboard user. The property manager reviews the shared record, approves cos
 
 A named contractor, phone number, price, time window, and reason prepared for manager review. A proposal is not a booking.
 
+## Contractor agreement
+
+A building-specific agreement with an approved contractor for a particular trade. It records priority, covered work, agreed pricing, coverage hours, and response commitments. The agreement—not an ad-hoc market search—is the default source for a contractor proposal.
+
+## Contractor attempt
+
+An auditable record that an approved contractor could not meet a repair's required response time. Attempts are ordered and must exhaust eligible agreements before urgent external fallback is allowed.
+
+## External contractor fallback
+
+An exception path used after every eligible approved contractor is recorded unavailable for an urgent or emergency repair, or after explicit property-manager instruction for a routine repair. Starting fallback does not approve a quote or book a visit.
+
 ## Approval
 
 An explicit property-manager decision recorded with actor and time. The server rejects booking when approval is absent.

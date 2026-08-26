@@ -35,7 +35,7 @@ describe("repair workflow", () => {
 
     expect(repair.status).toBe("scheduled");
     expect(repair.proposal?.status).toBe("booked");
-    expect(repair.appointment?.contractorName).toBe("ClearFlow Plumbing");
+    expect(repair.appointment?.contractorName).toBe("Hawthorn Building Services");
     expect(repair.activity.at(-1)?.label).toContain("Visit booked");
   });
 });

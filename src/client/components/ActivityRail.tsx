@@ -63,7 +63,9 @@ export function ActivityRail({ repair, busy, noteFocusToken, onSendNote }: Activ
               <strong>{repair.proposal.contractorName}</strong>
               <span>{repair.proposal.contractorPhone}</span>
             </div>
-            <span className="quote-status">Quote received by text</span>
+            <span className="quote-status">
+              {repair.proposal.source === "agreement" ? "Approved agreement" : "External quote"}
+            </span>
           </div>
         </section>
       ) : null}

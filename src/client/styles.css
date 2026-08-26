@@ -22,6 +22,7 @@
   --color-attention-pale: oklch(0.97 0.035 78);
   --color-danger: oklch(0.52 0.18 30);
   --color-danger-pale: oklch(0.96 0.03 30);
+  --color-approval-ink: oklch(0.37 0.08 70);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -582,7 +583,8 @@ p {
 .message-composer input,
 .sms-sheet input,
 .sms-sheet textarea,
-.agent-note-section textarea {
+.agent-note-section textarea,
+.external-request-form input {
   width: 100%;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
@@ -637,6 +639,25 @@ textarea::placeholder {
   gap: var(--space-3);
   margin-bottom: var(--space-5);
   font-size: 1rem;
+}
+
+.proposal-source {
+  width: fit-content;
+  display: inline-flex;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-5) 3.45rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-pale);
+  color: var(--color-primary);
+  font-size: 0.74rem;
+  line-height: 1.3;
+  font-weight: 680;
+}
+
+.proposal-source--external {
+  border: 1px solid color-mix(in oklch, var(--color-attention) 38%, var(--color-border));
+  background: var(--color-attention-pale);
+  color: var(--color-approval-ink);
 }
 
 .proposal-icon {
@@ -763,6 +784,47 @@ textarea::placeholder {
 .empty-proposal + .button {
   width: 100%;
   margin-top: var(--space-4);
+}
+
+.external-request-form,
+.external-requested {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.external-request-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.external-request-form label {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  font-weight: 680;
+}
+
+.external-request-form input {
+  min-height: 3rem;
+  padding: 0 var(--space-4);
+  font-size: 0.88rem;
+}
+
+.external-requested {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--color-primary);
+}
+
+.external-requested strong {
+  font-size: 0.9rem;
+}
+
+.external-requested span {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .booking-confirmed {

@@ -7,6 +7,26 @@ export type RepairStatus =
 
 export type Severity = "routine" | "urgent" | "emergency";
 export type MessageParty = "tenant" | "agent" | "manager" | "contractor";
+export type Trade = "plumbing" | "electrical" | "heating" | "locksmith" | "general";
+
+export interface ContractorAgreement {
+  id: string;
+  buildingId: string;
+  trade: Trade;
+  contractorName: string;
+  contractorPhone: string;
+  priority: number;
+  coveredWork: string;
+  pricing: {
+    basis: "fixed" | "rate_schedule";
+    amountPence: number;
+    description: string;
+  };
+  coverageHours: string;
+  responseMinutes: Record<Severity, number>;
+  effectiveFrom: string;
+  effectiveTo: string;
+}
 
 export interface RepairMessage {
   id: string;
@@ -32,6 +52,9 @@ export interface ContractorProposal {
   costPence: number;
   currency: "GBP";
   reason: string;
+  source: "agreement" | "external";
+  agreementId?: string;
+  priceBasis: string;
   status: "proposed" | "approved" | "booked";
 }
 
@@ -52,6 +75,7 @@ export interface RepairCase {
   title: string;
   summary: string;
   severity: Severity;
+  trade: Trade;
   status: RepairStatus;
   tenant: {
     name: string;
@@ -63,9 +87,38 @@ export interface RepairCase {
   updatedAt: string;
   messages: RepairMessage[];
   activity: ActivityEvent[];
+  contractorAttempts: ContractorAttempt[];
+  externalSearchRequest?: {
+    requestedBy: string;
+    requestedAt: string;
+    requiredBy: string;
+  };
+  externalSearch?: ExternalSearchAuthorization;
   proposal?: ContractorProposal;
   approval?: Approval;
   appointment?: Appointment;
+}
+
+export interface ContractorAttempt {
+  id: string;
+  agreementId: string;
+  contractorName: string;
+  reason: string;
+  earliestAvailableAt: string;
+  recordedAt: string;
+}
+
+export interface ExternalSearchAuthorization {
+  authorizedAt: string;
+  requiredBy: string;
+  reason: string;
+  requestedByManager?: string;
+  searchBrief: {
+    buildingId: string;
+    trade: Trade;
+    severity: Severity;
+    requiredBy: string;
+  };
 }
 
 export interface OutboundText {
@@ -78,6 +131,7 @@ export interface OutboundText {
 
 export interface AppStore {
   cases: RepairCase[];
+  contractorAgreements: ContractorAgreement[];
   outbox: OutboundText[];
 }
 
@@ -96,6 +150,7 @@ export interface TriageInput {
   title: string;
   summary: string;
   severity: Severity;
+  trade: Trade;
   accessNotes?: string;
 }
 

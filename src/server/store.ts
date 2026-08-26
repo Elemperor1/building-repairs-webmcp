@@ -10,6 +10,7 @@ import type {
   RepairMessage,
   TriageInput,
 } from "../shared/types.js";
+import { contractorSelection } from "./contractor-selection.js";
 import { seedStore } from "./seed.js";
 
 const storePath = resolve(process.cwd(), ".data/store.json");
@@ -63,6 +64,16 @@ const message = (
   sentAt: now(),
 });
 
+const availabilityLabel = (value: string) =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  }).format(new Date(value));
+
 const mutateCase = (caseId: string, mutate: (repair: RepairCase, store: AppStore) => void) => {
   const store = readStore();
   const repair = store.cases.find((item) => item.id === caseId);
@@ -82,6 +93,134 @@ export const repairStore = {
     const repair = readStore().cases.find((item) => item.id === caseId);
     if (!repair) throw new Error("Repair case not found.");
     return repair;
+  },
+
+  contractorPath(caseId: string) {
+    const store = readStore();
+    const repair = store.cases.find((item) => item.id === caseId);
+    if (!repair) throw new Error("Repair case not found.");
+    return contractorSelection.assess({
+      repair,
+      agreements: store.contractorAgreements,
+      now: new Date(),
+    });
+  },
+
+  proposePreferred(
+    caseId: string,
+    input: { agreementId: string; timeWindow: string; reason: string },
+  ) {
+    const store = readStore();
+    const repair = store.cases.find((item) => item.id === caseId);
+    if (!repair) throw new Error("Repair case not found.");
+    const decision = contractorSelection.assess({
+      repair,
+      agreements: store.contractorAgreements,
+      now: new Date(),
+    });
+    if (decision.kind !== "preferred_available" || decision.agreementId !== input.agreementId) {
+      throw new Error("Use the next eligible approved contractor for this repair.");
+    }
+    const agreement = store.contractorAgreements.find((item) => item.id === input.agreementId);
+    if (!agreement) throw new Error("Approved contractor agreement not found for this repair.");
+
+    return mutateCase(caseId, (selectedRepair) => {
+      selectedRepair.proposal = {
+        id: randomUUID(),
+        contractorName: agreement.contractorName,
+        contractorPhone: agreement.contractorPhone,
+        timeWindow: input.timeWindow,
+        costPence: agreement.pricing.amountPence,
+        currency: "GBP",
+        reason: input.reason,
+        source: "agreement",
+        agreementId: agreement.id,
+        priceBasis: agreement.pricing.description,
+        status: "proposed",
+      };
+      selectedRepair.approval = undefined;
+      selectedRepair.status = "waiting_for_approval";
+      selectedRepair.activity.push(
+        activity(`${agreement.contractorName} offered a time`, "contractor", input.timeWindow),
+        activity("Waiting for your approval", "system"),
+      );
+    });
+  },
+
+  recordContractorUnavailable(
+    caseId: string,
+    input: { agreementId: string; reason: string; earliestAvailableAt: string },
+  ) {
+    const store = readStore();
+    const repair = store.cases.find((item) => item.id === caseId);
+    if (!repair) throw new Error("Repair case not found.");
+    const update = contractorSelection.recordUnavailable({
+      repair,
+      agreements: store.contractorAgreements,
+      ...input,
+      now: new Date(),
+    });
+    const updatedRepair = mutateCase(caseId, (selectedRepair) => {
+      selectedRepair.contractorAttempts.push(update.attempt);
+      if (selectedRepair.proposal?.agreementId === input.agreementId) {
+        selectedRepair.proposal = undefined;
+        selectedRepair.approval = undefined;
+        selectedRepair.status = "new";
+      }
+      selectedRepair.activity.push(
+        activity(
+          `${update.attempt.contractorName} is unavailable`,
+          "contractor",
+          `${update.attempt.reason} Earliest availability: ${availabilityLabel(
+            update.attempt.earliestAvailableAt,
+          )}.`,
+        ),
+      );
+    });
+    return { repair: updatedRepair, decision: update.decision };
+  },
+
+  startExternalSearch(
+    caseId: string,
+    input: { requiredBy: string },
+  ) {
+    const store = readStore();
+    const repair = store.cases.find((item) => item.id === caseId);
+    if (!repair) throw new Error("Repair case not found.");
+    const authorization = contractorSelection.startExternalSearch({
+      repair,
+      agreements: store.contractorAgreements,
+      requiredBy: input.requiredBy,
+      requestedByManager: repair.externalSearchRequest?.requestedBy,
+      now: new Date(),
+    });
+    const updatedRepair = mutateCase(caseId, (selectedRepair) => {
+      selectedRepair.externalSearch = authorization;
+      selectedRepair.activity.push(
+        activity("External contractor search started", "agent", authorization.reason),
+      );
+    });
+    return { repair: updatedRepair, authorization };
+  },
+
+  requestExternalSearch(
+    caseId: string,
+    input: { requestedBy: string; requiredBy: string },
+  ) {
+    return mutateCase(caseId, (repair) => {
+      repair.externalSearchRequest = {
+        requestedBy: input.requestedBy,
+        requestedAt: now(),
+        requiredBy: input.requiredBy,
+      };
+      repair.activity.push(
+        activity(
+          `${input.requestedBy} requested external contractor options`,
+          "manager",
+          `Options required by ${availabilityLabel(input.requiredBy)}.`,
+        ),
+      );
+    });
   },
 
   receiveSms(input: InboundSmsInput) {
@@ -107,12 +246,14 @@ export const repairStore = {
       title: "New repair message",
       summary: input.body,
       severity: "routine",
+      trade: "general",
       status: "new",
       tenant: { name: tenantName, unit, phone: input.from },
       createdAt,
       updatedAt: createdAt,
       messages: [message("tenant", input.body, "sms")],
       activity: [activity(`${tenantName} reported a repair`, "tenant", input.body)],
+      contractorAttempts: [],
     };
     store.cases.push(repair);
     writeStore(store);
@@ -124,6 +265,7 @@ export const repairStore = {
       repair.title = input.title;
       repair.summary = input.summary;
       repair.severity = input.severity;
+      repair.trade = input.trade;
       repair.accessNotes = input.accessNotes;
       repair.activity.push(activity("Agent reviewed the repair", "agent", input.summary));
     });
@@ -139,6 +281,11 @@ export const repairStore = {
 
   propose(caseId: string, input: ProposalInput) {
     return mutateCase(caseId, (repair) => {
+      if (!repair.externalSearch) {
+        throw new Error(
+          "External contractor search must be authorized before adding an external proposal.",
+        );
+      }
       if (repair.status === "scheduled" || repair.status === "closed") {
         throw new Error("A proposal cannot be added to a finished repair.");
       }
@@ -146,6 +293,8 @@ export const repairStore = {
         id: randomUUID(),
         ...input,
         currency: "GBP",
+        source: "external",
+        priceBasis: "External quote",
         status: "proposed",
       };
       repair.approval = undefined;

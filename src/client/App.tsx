@@ -51,6 +51,20 @@ export default function App() {
     );
   };
 
+  const requestExternalOptions = async (requiredBy: string) => {
+    if (!repairs.selected) return;
+    await repairs.run(
+      "external-request",
+      () =>
+        api.requestExternalSearch(
+          repairs.selected!.id,
+          "Property manager",
+          requiredBy,
+        ),
+      "The agent can now look for external options for this repair.",
+    );
+  };
+
   const simulateSms = async (input: Parameters<typeof api.simulateInboundText>[0]) => {
     await repairs.run(
       "simulate-sms",
@@ -78,6 +92,7 @@ export default function App() {
           onSendTenantMessage={sendTenantMessage}
           onSendManagerNote={sendManagerNote}
           onApproveAndBook={approveAndBook}
+          onRequestExternalOptions={requestExternalOptions}
         />
       ) : (
         <main className="empty-workspace">

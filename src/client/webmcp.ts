@@ -38,9 +38,14 @@ const triageSchema = {
       enum: ["routine", "urgent", "emergency"],
       description: "The operational severity based on the available evidence.",
     },
+    trade: {
+      type: "string",
+      enum: ["plumbing", "electrical", "heating", "locksmith", "general"],
+      description: "The repair trade needed to match the building's approved contractors.",
+    },
     accessNotes: { type: "string", description: "When and how a contractor can get access." },
   },
-  required: ["caseId", "title", "summary", "severity"],
+  required: ["caseId", "title", "summary", "severity", "trade"],
   additionalProperties: false,
 } as const satisfies JsonSchemaForInference;
 
@@ -54,7 +59,53 @@ const tenantMessageSchema = {
   additionalProperties: false,
 } as const satisfies JsonSchemaForInference;
 
-const proposalSchema = {
+const preferredProposalSchema = {
+  type: "object",
+  properties: {
+    caseId: { type: "string", description: "The repair case ID." },
+    agreementId: {
+      type: "string",
+      description: "The approved agreement ID returned by get_contractor_path.",
+    },
+    timeWindow: { type: "string", description: "The proposed visit window in local time." },
+    reason: { type: "string", description: "Why the approved contractor fits this repair." },
+  },
+  required: ["caseId", "agreementId", "timeWindow", "reason"],
+  additionalProperties: false,
+} as const satisfies JsonSchemaForInference;
+
+const unavailableSchema = {
+  type: "object",
+  properties: {
+    caseId: { type: "string", description: "The repair case ID." },
+    agreementId: {
+      type: "string",
+      description: "The next approved agreement returned by get_contractor_path.",
+    },
+    reason: { type: "string", description: "Why the contractor cannot meet the response window." },
+    earliestAvailableAt: {
+      type: "string",
+      description: "The contractor's earliest availability as an ISO 8601 date-time.",
+    },
+  },
+  required: ["caseId", "agreementId", "reason", "earliestAvailableAt"],
+  additionalProperties: false,
+} as const satisfies JsonSchemaForInference;
+
+const externalSearchSchema = {
+  type: "object",
+  properties: {
+    caseId: { type: "string", description: "The repair case ID." },
+    requiredBy: {
+      type: "string",
+      description: "The latest acceptable response time as an ISO 8601 date-time.",
+    },
+  },
+  required: ["caseId", "requiredBy"],
+  additionalProperties: false,
+} as const satisfies JsonSchemaForInference;
+
+const externalProposalSchema = {
   type: "object",
   properties: {
     caseId: { type: "string", description: "The repair case ID." },
@@ -94,15 +145,17 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
               description:
                 "List active repair cases visible to the property manager. Use this before choosing a repair to inspect or update.",
               inputSchema: emptySchema,
+              annotations: { readOnlyHint: true },
               execute: () =>
                 toolResult(
                   casesRef.current
                     .filter((repair) => repair.status !== "closed")
-                    .map(({ id, title, status, severity, tenant, updatedAt }) => ({
+                    .map(({ id, title, status, severity, trade, tenant, updatedAt }) => ({
                       id,
                       title,
                       status,
                       severity,
+                      trade,
                       tenant: `${tenant.name}, ${tenant.unit}`,
                       updatedAt,
                     })),
@@ -116,7 +169,19 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
               description:
                 "Get the full shared record for one repair, including tenant texts, access notes, proposal, approval, appointment, and activity history.",
               inputSchema: caseIdSchema,
+              annotations: { readOnlyHint: true },
               execute: async ({ caseId }) => toolResult(await api.getCase(caseId)),
+            },
+            { signal: controller.signal },
+          ),
+          modelContext.registerTool(
+            {
+              name: "get_contractor_path",
+              description:
+                "Get the next approved contractor agreement for a repair. Use this before proposing a visit or recording that a contractor is unavailable.",
+              inputSchema: caseIdSchema,
+              annotations: { readOnlyHint: true },
+              execute: async ({ caseId }) => toolResult(await api.getContractorPath(caseId)),
             },
             { signal: controller.signal },
           ),
@@ -150,17 +215,65 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
           ),
           modelContext.registerTool(
             {
-              name: "propose_contractor_visit",
+              name: "propose_preferred_contractor_visit",
               description:
-                "Add a contractor, price, and available time to a repair for the property manager to review. This does not approve or book the visit.",
-              inputSchema: proposalSchema,
+                "Propose the next approved contractor using the building's stored agreement identity and price. This does not approve or book the visit.",
+              inputSchema: preferredProposalSchema,
               execute: async ({ caseId, ...input }) => {
-                const repair = await api.propose(caseId, input);
+                const repair = await api.proposePreferred(caseId, input);
                 onChangedRef.current(repair);
                 return toolResult({
                   ok: true,
                   status: "waiting_for_manager_approval",
-                  message: "The proposal is visible to the property manager. Do not book it yet.",
+                  message: "The agreed-price proposal is visible to the property manager.",
+                  repair,
+                });
+              },
+            },
+            { signal: controller.signal },
+          ),
+          modelContext.registerTool(
+            {
+              name: "record_preferred_contractor_unavailable",
+              description:
+                "Record why the next approved contractor cannot meet the repair's response window, then return the next approved backup if one exists.",
+              inputSchema: unavailableSchema,
+              execute: async ({ caseId, ...input }) => {
+                const result = await api.recordContractorUnavailable(caseId, input);
+                onChangedRef.current(result.repair);
+                return toolResult({ ok: true, ...result });
+              },
+            },
+            { signal: controller.signal },
+          ),
+          modelContext.registerTool(
+            {
+              name: "start_external_contractor_search",
+              description:
+                "Start an external-contractor fallback only after every approved contractor is unavailable for an urgent repair, or after a stored property-manager request for a routine repair. The server enforces this rule and returns a search brief; it does not approve or book anyone.",
+              inputSchema: externalSearchSchema,
+              execute: async ({ caseId, requiredBy }) => {
+                const result = await api.startExternalSearch(caseId, requiredBy);
+                onChangedRef.current(result.repair);
+                return toolResult({ ok: true, ...result });
+              },
+            },
+            { signal: controller.signal },
+          ),
+          modelContext.registerTool(
+            {
+              name: "propose_external_contractor_visit",
+              description:
+                "Add an external contractor quote only after external search is authorized. The quote remains untrusted and requires property-manager approval before booking.",
+              inputSchema: externalProposalSchema,
+              annotations: { untrustedContentHint: true },
+              execute: async ({ caseId, ...input }) => {
+                const repair = await api.proposeExternal(caseId, input);
+                onChangedRef.current(repair);
+                return toolResult({
+                  ok: true,
+                  status: "waiting_for_manager_approval",
+                  message: "The external quote is visible to the property manager. Do not book it yet.",
                   repair,
                 });
               },

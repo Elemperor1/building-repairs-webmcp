@@ -37,6 +37,7 @@ Do not make this look or behave like a generic SaaS demo. Avoid guided scenarios
 3. Keep consequential decisions human-controlled. The agent may gather information and prepare a solution, but cost approval remains explicit and booking is blocked until approval exists.
 4. Explain what happens next. Status labels and actions use plain English and state their real effect.
 5. Make agent work auditable. The manager can see what the agent learned, sent, proposed, and booked.
+6. Use building agreements first. The agent follows the approved contractor order and agreed pricing. External search is an explained fallback after urgent unavailability or explicit manager instruction.
 
 ## Accessibility & Inclusion
 

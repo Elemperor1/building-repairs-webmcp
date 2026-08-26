@@ -11,6 +11,8 @@ Building Repairs is an SMS-first rental-maintenance coordinator. Tenants report 
 - local JSON storage with atomic writes
 - real Twilio outbound delivery when credentials are present, with a local outbox fallback for development
 - manager approval gate enforced by the server before booking
+- building-specific preferred contractor agreements with ordered backups and agreed prices
+- auditable contractor-unavailability attempts and server-guarded external fallback
 - responsive property-manager dashboard with a development-only SMS simulator
 - WebMCP tools for listing, reading, triaging, messaging, proposing, and booking approved repairs
 
@@ -60,10 +62,16 @@ The dashboard registers these tools when the browser exposes the WebMCP producer
 
 - `list_open_repairs`
 - `get_repair_case`
+- `get_contractor_path`
 - `triage_repair`
 - `send_tenant_message`
-- `propose_contractor_visit`
+- `propose_preferred_contractor_visit`
+- `record_preferred_contractor_unavailable`
+- `start_external_contractor_search`
+- `propose_external_contractor_visit`
 - `book_approved_visit`
+
+The preferred route takes contractor identity and price from the stored agreement. An agent cannot skip the primary agreement, claim a manager requested fallback, or add an external quote before the server authorizes external search.
 
 The implementation feature-detects the current `document.modelContext` API and the deprecated `navigator.modelContext` compatibility surface. If neither is present, the dashboard says “Browser agent tools unavailable.” There is no fake connected state and no production polyfill.
 
@@ -81,6 +89,7 @@ tenant SMS ──> /api/sms/inbound ──> repair store ──> manager dashboa
 ```
 
 - `src/server`: webhook, workflow API, persistence, and SMS delivery
+- `src/server/contractor-selection.ts`: agreement priority, attempts, and external-search policy behind one domain interface
 - `src/client`: React dashboard and WebMCP registration
 - `src/shared`: repair-domain types
 - `PRODUCT.md`: product boundaries

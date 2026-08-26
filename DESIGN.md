@@ -216,6 +216,7 @@ The product is flat by default. Structure comes from alignment, surface shifts, 
 
 - **Style:** compact `8px`-radius label with icon, one-pixel semantic border, and pale semantic background.
 - **State:** amber means a decision is required; green means complete or connected; red means an error or immediate risk.
+- **Proposal source:** use a compact green “Approved agreement” label for stored terms and an amber “External quote” label for fallback pricing.
 
 ### Cards and containers
 

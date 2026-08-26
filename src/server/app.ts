@@ -17,6 +17,7 @@ const triageSchema = z.object({
   title: z.string().min(3),
   summary: z.string().min(3),
   severity: z.enum(["routine", "urgent", "emergency"]),
+  trade: z.enum(["plumbing", "electrical", "heating", "locksmith", "general"]),
   accessNotes: z.string().optional(),
 });
 
@@ -26,6 +27,27 @@ const proposalSchema = z.object({
   timeWindow: z.string().min(3),
   costPence: z.number().int().positive(),
   reason: z.string().min(3),
+});
+
+const preferredProposalSchema = z.object({
+  agreementId: z.string().min(3),
+  timeWindow: z.string().min(3),
+  reason: z.string().min(3),
+});
+
+const contractorUnavailableSchema = z.object({
+  agreementId: z.string().min(3),
+  reason: z.string().min(3),
+  earliestAvailableAt: z.string().datetime(),
+});
+
+const externalSearchSchema = z.object({
+  requiredBy: z.string().datetime(),
+});
+
+const externalSearchRequestSchema = z.object({
+  requestedBy: z.string().min(2),
+  requiredBy: z.string().datetime(),
 });
 
 const messageSchema = z.object({ body: z.string().min(1).max(1000) });
@@ -45,6 +67,46 @@ export const createApp = () => {
 
   app.get("/api/cases/:caseId", (request, response) => {
     response.json({ repair: repairStore.get(request.params.caseId) });
+  });
+
+  app.get("/api/cases/:caseId/contractor-path", (request, response) => {
+    response.json({ decision: repairStore.contractorPath(request.params.caseId) });
+  });
+
+  app.post("/api/cases/:caseId/contractor-proposal", (request, response) => {
+    response.json({
+      repair: repairStore.proposePreferred(
+        request.params.caseId,
+        preferredProposalSchema.parse(request.body),
+      ),
+    });
+  });
+
+  app.post("/api/cases/:caseId/contractor-attempts/unavailable", (request, response) => {
+    response.json(
+      repairStore.recordContractorUnavailable(
+        request.params.caseId,
+        contractorUnavailableSchema.parse(request.body),
+      ),
+    );
+  });
+
+  app.post("/api/cases/:caseId/external-search", (request, response) => {
+    response.json(
+      repairStore.startExternalSearch(
+        request.params.caseId,
+        externalSearchSchema.parse(request.body),
+      ),
+    );
+  });
+
+  app.post("/api/cases/:caseId/external-search/request", (request, response) => {
+    response.json({
+      repair: repairStore.requestExternalSearch(
+        request.params.caseId,
+        externalSearchRequestSchema.parse(request.body),
+      ),
+    });
   });
 
   app.post("/api/sms/inbound", (request, response) => {

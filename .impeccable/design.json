@@ -97,6 +97,13 @@
       "description": "A consequential waiting state that names what the property manager must do.",
       "html": "<span class=\"ds-status-attention\">Waiting for your approval</span>",
       "css": ".ds-status-attention { display: inline-flex; align-items: center; min-height: 34px; padding: 8px 14px; border: 1px solid color-mix(in oklch, var(--color-attention) 38%, var(--color-border)); border-radius: 8px; background: var(--color-attention-pale); color: oklch(.37 .08 70); font: 690 .86rem/1.2 ui-sans-serif, sans-serif; }"
+    },
+    {
+      "name": "Proposal Source",
+      "kind": "chip",
+      "description": "Distinguishes stored agreement terms from an exceptional external quote.",
+      "html": "<span class=\"ds-proposal-source\">Approved agreement</span>",
+      "css": ".ds-proposal-source { display: inline-flex; padding: 6px 9px; border-radius: 8px; background: var(--color-primary-pale); color: var(--color-primary); font: 680 .74rem/1.3 ui-sans-serif, sans-serif; }"
     }
   ],
   "narrative": {

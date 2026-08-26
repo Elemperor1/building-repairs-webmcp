@@ -36,6 +36,10 @@ export const api = {
     return (await request<RepairResponse>(`/api/cases/${caseId}`)).repair;
   },
 
+  async getContractorPath(caseId: string) {
+    return request<{ decision: unknown }>(`/api/cases/${caseId}/contractor-path`);
+  },
+
   async simulateInboundText(input: InboundSmsInput) {
     return (await post<RepairResponse>("/api/sms/inbound", input)).repair;
   },
@@ -52,8 +56,41 @@ export const api = {
     return (await post<RepairResponse>(`/api/cases/${caseId}/messages/manager`, { body })).repair;
   },
 
-  async propose(caseId: string, input: ProposalInput) {
+  async proposeExternal(caseId: string, input: ProposalInput) {
     return (await post<RepairResponse>(`/api/cases/${caseId}/proposal`, input)).repair;
+  },
+
+  async proposePreferred(
+    caseId: string,
+    input: { agreementId: string; timeWindow: string; reason: string },
+  ) {
+    return (await post<RepairResponse>(`/api/cases/${caseId}/contractor-proposal`, input)).repair;
+  },
+
+  async recordContractorUnavailable(
+    caseId: string,
+    input: { agreementId: string; reason: string; earliestAvailableAt: string },
+  ) {
+    return post<{ repair: RepairCase; decision: unknown }>(
+      `/api/cases/${caseId}/contractor-attempts/unavailable`,
+      input,
+    );
+  },
+
+  async startExternalSearch(caseId: string, requiredBy: string) {
+    return post<{ repair: RepairCase; authorization: unknown }>(
+      `/api/cases/${caseId}/external-search`,
+      { requiredBy },
+    );
+  },
+
+  async requestExternalSearch(caseId: string, requestedBy: string, requiredBy: string) {
+    return (
+      await post<RepairResponse>(`/api/cases/${caseId}/external-search/request`, {
+        requestedBy,
+        requiredBy,
+      })
+    ).repair;
   },
 
   async approve(caseId: string, approvedBy = "Property manager") {

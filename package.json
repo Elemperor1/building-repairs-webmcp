@@ -27,6 +27,7 @@
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "latest",
     "concurrently": "latest",
+    "node-mocks-http": "^1.18.1",
     "tsx": "latest",
     "typescript": "latest",
     "vite": "latest",
