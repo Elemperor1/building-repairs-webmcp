@@ -187,11 +187,15 @@ export const repairStore = {
     const store = readStore();
     const repair = store.cases.find((item) => item.id === caseId);
     if (!repair) throw new Error("Repair case not found.");
+    const managerRequest = repair.externalSearchRequest;
+    const requiredBy = repair.severity === "routine" && managerRequest
+      ? managerRequest.requiredBy
+      : input.requiredBy;
     const authorization = contractorSelection.startExternalSearch({
       repair,
       agreements: store.contractorAgreements,
-      requiredBy: input.requiredBy,
-      requestedByManager: repair.externalSearchRequest?.requestedBy,
+      requiredBy,
+      requestedByManager: managerRequest?.requestedBy,
       now: new Date(),
     });
     const updatedRepair = mutateCase(caseId, (selectedRepair) => {

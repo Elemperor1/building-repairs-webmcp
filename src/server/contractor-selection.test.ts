@@ -27,8 +27,15 @@ const agreement = (overrides: Partial<ContractorAgreement> = {}): ContractorAgre
   contractorPhone: "020 7946 0100",
   priority: 1,
   coveredWork: "Plumbing call-outs and first-hour labour",
+  coveredSeverities: ["routine", "urgent", "emergency"],
   pricing: { basis: "fixed", amountPence: 12500, description: "Agreed call-out and first hour" },
-  coverageHours: "Monday–Sunday, 08:00–20:00",
+  coverageHours: {
+    description: "Monday–Sunday, 08:00–20:00",
+    timeZone: "Europe/London",
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    startsAt: "08:00",
+    endsAt: "20:00",
+  },
   responseMinutes: { routine: 1440, urgent: 240, emergency: 90 },
   effectiveFrom: "2026-01-01",
   effectiveTo: "2026-12-31",
@@ -54,6 +61,57 @@ describe("contractor selection", () => {
       priceBasis: "Agreed call-out and first hour",
       costPence: 12500,
       responseMinutes: 1440,
+    });
+  });
+
+  it("skips agreements that do not cover the repair severity or current hours", () => {
+    const decision = contractorSelection.assess({
+      repair: repair({ severity: "urgent" }),
+      agreements: [
+        agreement({ coveredSeverities: ["routine"] }),
+        agreement({
+          id: "agreement-backup",
+          contractorName: "24-hour Backup Plumbing",
+          priority: 2,
+          coverageHours: {
+            description: "Every day",
+            timeZone: "Europe/London",
+            days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            startsAt: "00:00",
+            endsAt: "23:59",
+          },
+        }),
+      ],
+      now: new Date("2026-08-26T21:30:00.000Z"),
+    });
+
+    expect(decision).toMatchObject({
+      kind: "preferred_available",
+      agreementId: "agreement-backup",
+      contractorName: "24-hour Backup Plumbing",
+    });
+  });
+
+  it("selects the first agreement whose response commitment meets the deadline", () => {
+    const decision = contractorSelection.assess({
+      repair: repair({ severity: "urgent" }),
+      agreements: [
+        agreement(),
+        agreement({
+          id: "agreement-fast-backup",
+          contractorName: "Fast Backup Plumbing",
+          priority: 2,
+          responseMinutes: { routine: 1440, urgent: 30, emergency: 30 },
+        }),
+      ],
+      now: new Date("2026-08-26T12:30:00.000Z"),
+      requiredBy: "2026-08-26T13:30:00.000Z",
+    });
+
+    expect(decision).toMatchObject({
+      kind: "preferred_available",
+      agreementId: "agreement-fast-backup",
+      contractorName: "Fast Backup Plumbing",
     });
   });
 
@@ -99,7 +157,7 @@ describe("contractor selection", () => {
       contractorSelection.startExternalSearch({
         repair: repair({ severity: "urgent" }),
         agreements: [agreement()],
-        requiredBy: "2026-08-26T16:00:00.000Z",
+        requiredBy: "2026-08-26T17:00:00.000Z",
         requestedByManager: undefined,
         now: new Date("2026-08-26T12:30:00.000Z"),
       }),
@@ -150,6 +208,30 @@ describe("contractor selection", () => {
         requiredBy: "2026-08-26T16:00:00.000Z",
       },
     });
+  });
+
+  it("blocks urgent external search when a preferred contractor can still meet the deadline", () => {
+    expect(() =>
+      contractorSelection.startExternalSearch({
+        repair: repair({
+          severity: "urgent",
+          contractorAttempts: [
+            {
+              id: "attempt-primary",
+              agreementId: "agreement-primary-plumber",
+              contractorName: "Hawthorn Plumbing",
+              reason: "The engineer offered a later appointment.",
+              earliestAvailableAt: "2026-08-26T15:30:00.000Z",
+              recordedAt: "2026-08-26T12:10:00.000Z",
+            },
+          ],
+        }),
+        agreements: [agreement()],
+        requiredBy: "2026-08-26T17:00:00.000Z",
+        requestedByManager: undefined,
+        now: new Date("2026-08-26T12:30:00.000Z"),
+      }),
+    ).toThrow("An approved contractor can still meet the required response time.");
   });
 
   it("authorizes routine external search when a named property manager requests it", () => {

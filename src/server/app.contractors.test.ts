@@ -101,12 +101,34 @@ describe("contractor workflow HTTP interface", () => {
 
   it("rejects urgent external search while approved contractors remain", async () => {
     const response = await callApp("POST", "/api/cases/repair-1001/external-search", {
-      requiredBy: "2026-08-26T16:00:00.000Z",
+      requiredBy: "2026-08-26T23:00:00.000Z",
     });
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
       error: "Try every eligible approved contractor before external search.",
+    });
+  });
+
+  it("rejects urgent fallback when an attempted approved contractor can meet the deadline", async () => {
+    await callApp("POST", "/api/cases/repair-1001/contractor-attempts/unavailable", {
+      agreementId: "agreement-hawthorn-plumbing-primary",
+      reason: "The primary offered tomorrow morning.",
+      earliestAvailableAt: "2026-08-27T08:00:00.000Z",
+    });
+    await callApp("POST", "/api/cases/repair-1001/contractor-attempts/unavailable", {
+      agreementId: "agreement-hawthorn-plumbing-backup",
+      reason: "The backup offered late afternoon.",
+      earliestAvailableAt: "2026-08-26T16:00:00.000Z",
+    });
+
+    const response = await callApp("POST", "/api/cases/repair-1001/external-search", {
+      requiredBy: "2026-08-26T23:00:00.000Z",
+    });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      error: "An approved contractor can still meet the required response time.",
     });
   });
 
@@ -196,7 +218,7 @@ describe("contractor workflow HTTP interface", () => {
     const startResponse = await callApp(
       "POST",
       `/api/cases/${created.repair.id}/external-search`,
-      { requiredBy: "2026-08-28T12:00:00.000Z" },
+      { requiredBy: "2026-08-29T12:00:00.000Z" },
     );
 
     expect(startResponse.status).toBe(200);
@@ -204,7 +226,12 @@ describe("contractor workflow HTTP interface", () => {
       authorization: {
         requestedByManager: "Priya Shah",
         reason: "Priya Shah requested external options for this routine repair.",
-        searchBrief: { trade: "heating", severity: "routine" },
+        requiredBy: "2026-08-28T12:00:00.000Z",
+        searchBrief: {
+          trade: "heating",
+          severity: "routine",
+          requiredBy: "2026-08-28T12:00:00.000Z",
+        },
       },
       repair: {
         activity: expect.arrayContaining([

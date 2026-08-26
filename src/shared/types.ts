@@ -8,6 +8,7 @@ export type RepairStatus =
 export type Severity = "routine" | "urgent" | "emergency";
 export type MessageParty = "tenant" | "agent" | "manager" | "contractor";
 export type Trade = "plumbing" | "electrical" | "heating" | "locksmith" | "general";
+export type Weekday = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
 
 export interface ContractorAgreement {
   id: string;
@@ -17,12 +18,19 @@ export interface ContractorAgreement {
   contractorPhone: string;
   priority: number;
   coveredWork: string;
+  coveredSeverities: Severity[];
   pricing: {
     basis: "fixed" | "rate_schedule";
     amountPence: number;
     description: string;
   };
-  coverageHours: string;
+  coverageHours: {
+    description: string;
+    timeZone: string;
+    days: Weekday[];
+    startsAt: string;
+    endsAt: string;
+  };
   responseMinutes: Record<Severity, number>;
   effectiveFrom: string;
   effectiveTo: string;

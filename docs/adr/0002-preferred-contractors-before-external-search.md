@@ -12,7 +12,7 @@ Building managers often have established contractors, fixed pricing, coverage te
 
 One contractor-selection module owns agreement eligibility, priority ordering, attempts, and external-search authorization. Its interface returns the next approved agreement or an explicit fallback decision. The repair store persists the result; HTTP and WebMCP remain adapters at the module's seam.
 
-External search is allowed only after eligible agreements are exhausted for an urgent or emergency repair, or after explicit manager instruction for a routine repair. External search produces a brief and audit entry, never an approval or booking.
+External search is allowed only after eligible agreements are exhausted for an urgent or emergency repair, or after explicit manager instruction for a routine repair. A routine search remains bound to the deadline stored with that manager instruction. External search produces a brief and audit entry, never an approval or booking.
 
 ## Consequences
 

@@ -85,6 +85,11 @@ export function ProposalPanel({
           <strong>{proposal.contractorName}</strong>
         </div>
         <span className={`proposal-source proposal-source--${proposal.source}`}>
+          {proposal.source === "agreement" ? (
+            <Check aria-hidden="true" />
+          ) : (
+            <ReceiptText aria-hidden="true" />
+          )}
           {proposal.source === "agreement" ? "Approved agreement" : "External quote"}
         </span>
         <p>

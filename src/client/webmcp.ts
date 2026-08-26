@@ -250,7 +250,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "start_external_contractor_search",
               description:
-                "Start an external-contractor fallback only after every approved contractor is unavailable for an urgent repair, or after a stored property-manager request for a routine repair. The server enforces this rule and returns a search brief; it does not approve or book anyone.",
+                "Start an external-contractor fallback only after every eligible approved contractor is unavailable for an urgent or emergency repair, or after a stored property-manager request for a routine repair. The server enforces this rule and returns a search brief; it does not approve or book anyone.",
               inputSchema: externalSearchSchema,
               execute: async ({ caseId, requiredBy }) => {
                 const result = await api.startExternalSearch(caseId, requiredBy);

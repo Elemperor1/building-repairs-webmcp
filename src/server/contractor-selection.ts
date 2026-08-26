@@ -10,6 +10,7 @@ interface AssessContractorSelectionInput {
   repair: RepairCase;
   agreements: ContractorAgreement[];
   now: Date;
+  requiredBy?: string;
 }
 
 interface RecordContractorUnavailableInput extends AssessContractorSelectionInput {
@@ -40,14 +41,57 @@ const activeOn = (agreement: ContractorAgreement, now: Date) => {
   return agreement.effectiveFrom <= date && agreement.effectiveTo >= date;
 };
 
+const localCoverageTime = (agreement: ContractorAgreement, now: Date) => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: agreement.coverageHours.timeZone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? "";
+  return { weekday: part("weekday"), time: `${part("hour")}:${part("minute")}` };
+};
+
+const withinCoverage = (agreement: ContractorAgreement, now: Date) => {
+  const { weekday, time } = localCoverageTime(agreement, now);
+  const { days, startsAt, endsAt } = agreement.coverageHours;
+  return days.includes(weekday as (typeof days)[number]) && time >= startsAt && time <= endsAt;
+};
+
+const canMeetDeadline = (
+  agreement: ContractorAgreement,
+  repair: RepairCase,
+  now: Date,
+  requiredBy?: string,
+) =>
+  !requiredBy ||
+  now.getTime() + agreement.responseMinutes[repair.severity] * 60_000 <=
+    new Date(requiredBy).getTime();
+
+const eligibleAgreements = ({
+  repair,
+  agreements,
+  now,
+  requiredBy,
+}: AssessContractorSelectionInput) =>
+  agreements.filter(
+    (agreement) =>
+      agreement.buildingId === repair.buildingId &&
+      agreement.trade === repair.trade &&
+      agreement.coveredSeverities.includes(repair.severity) &&
+      activeOn(agreement, now) &&
+      withinCoverage(agreement, now) &&
+      canMeetDeadline(agreement, repair, now, requiredBy),
+  );
+
 export const contractorSelection = {
-  assess({ repair, agreements, now }: AssessContractorSelectionInput): ContractorSelectionDecision {
-    const selected = agreements
+  assess(input: AssessContractorSelectionInput): ContractorSelectionDecision {
+    const { repair } = input;
+    const selected = eligibleAgreements(input)
       .filter(
         (agreement) =>
-          agreement.buildingId === repair.buildingId &&
-          agreement.trade === repair.trade &&
-          activeOn(agreement, now) &&
           !repair.contractorAttempts.some((attempt) => attempt.agreementId === agreement.id),
       )
       .sort((left, right) => left.priority - right.priority)[0];
@@ -80,12 +124,8 @@ export const contractorSelection = {
     if (current.kind !== "preferred_available" || current.agreementId !== agreementId) {
       throw new Error("Check the next approved contractor before moving to a backup.");
     }
-    const agreement = agreements.find(
-      (candidate) =>
-        candidate.id === agreementId &&
-        candidate.buildingId === repair.buildingId &&
-        candidate.trade === repair.trade &&
-        activeOn(candidate, now),
+    const agreement = eligibleAgreements({ repair, agreements, now }).find(
+      (candidate) => candidate.id === agreementId,
     );
     if (!agreement) throw new Error("Approved contractor agreement not found for this repair.");
 
@@ -118,11 +158,24 @@ export const contractorSelection = {
     if (repair.severity === "routine" && !requestedByManager) {
       throw new Error("Routine repairs need property-manager instruction before external search.");
     }
-    if (
-      repair.severity !== "routine" &&
-      this.assess({ repair, agreements, now }).kind === "preferred_available"
-    ) {
-      throw new Error("Try every eligible approved contractor before external search.");
+    if (repair.severity !== "routine") {
+      const eligible = eligibleAgreements({ repair, agreements, now, requiredBy });
+      const untried = eligible.some(
+        (agreement) =>
+          !repair.contractorAttempts.some((attempt) => attempt.agreementId === agreement.id),
+      );
+      if (untried) {
+        throw new Error("Try every eligible approved contractor before external search.");
+      }
+      const stillAvailable = eligible.some((agreement) => {
+        const attempt = repair.contractorAttempts.find(
+          (candidate) => candidate.agreementId === agreement.id,
+        );
+        return attempt && new Date(attempt.earliestAvailableAt) <= new Date(requiredBy);
+      });
+      if (stillAvailable) {
+        throw new Error("An approved contractor can still meet the required response time.");
+      }
     }
 
     return {

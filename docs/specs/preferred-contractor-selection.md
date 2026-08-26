@@ -29,6 +29,8 @@ The agent starts with the building's approved contractor agreements. External co
 11. The dashboard shows whether a proposal uses an agreement or an external quote, including the price basis.
 12. Activity history explains contractor unavailability and why external fallback began.
 
+Eligibility means the agreement matches the building, trade, covered severity, effective dates, and current coverage window, and its response commitment can meet the requested deadline. For routine fallback, the search deadline is the one stored with the manager's request; an agent-supplied replacement is ignored.
+
 ## Out of scope
 
 - A marketplace or search-provider integration
