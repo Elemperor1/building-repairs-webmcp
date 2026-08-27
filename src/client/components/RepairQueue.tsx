@@ -1,4 +1,4 @@
-import { Filter, MessageSquarePlus } from "lucide-react";
+import { Filter, MessageSquarePlus, RotateCcw } from "lucide-react";
 import type { RepairCase, RepairStatus } from "../../shared/types";
 
 interface RepairQueueProps {
@@ -6,6 +6,9 @@ interface RepairQueueProps {
   selectedId?: string;
   onSelect: (caseId: string) => void;
   onOpenSmsSimulator: () => void;
+  demoMode: boolean;
+  resetting: boolean;
+  onResetDemo: () => Promise<void>;
 }
 
 const groups: Array<{ status: RepairStatus; label: string }> = [
@@ -22,7 +25,15 @@ const relativeTime = (value: string) => {
   return hours === 1 ? "1 hr ago" : `${hours} hrs ago`;
 };
 
-export function RepairQueue({ cases, selectedId, onSelect, onOpenSmsSimulator }: RepairQueueProps) {
+export function RepairQueue({
+  cases,
+  selectedId,
+  onSelect,
+  onOpenSmsSimulator,
+  demoMode,
+  resetting,
+  onResetDemo,
+}: RepairQueueProps) {
   return (
     <aside className="repair-queue" aria-label="Repair queue">
       <div className="queue-heading">
@@ -63,7 +74,23 @@ export function RepairQueue({ cases, selectedId, onSelect, onOpenSmsSimulator }:
         })}
       </div>
 
-      {import.meta.env.DEV ? (
+      {demoMode ? (
+        <div className="demo-controls">
+          <button className="test-sms-button" type="button" onClick={onOpenSmsSimulator}>
+            <MessageSquarePlus aria-hidden="true" />
+            Simulate SMS / MMS
+          </button>
+          <button
+            className="test-sms-button"
+            type="button"
+            onClick={() => void onResetDemo()}
+            disabled={resetting}
+          >
+            <RotateCcw aria-hidden="true" />
+            {resetting ? "Resetting…" : "Reset synthetic demo"}
+          </button>
+        </div>
+      ) : import.meta.env.DEV ? (
         <button className="test-sms-button" type="button" onClick={onOpenSmsSimulator}>
           <MessageSquarePlus aria-hidden="true" />
           Test an incoming text

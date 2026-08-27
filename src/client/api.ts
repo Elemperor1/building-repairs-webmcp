@@ -1,8 +1,11 @@
 import type {
   CaseListResponse,
+  ContractorConfirmationInput,
+  DemoMessageInput,
   InboundSmsInput,
   ProposalInput,
   RepairCase,
+  TenantAccessAuthorizationInput,
   TriageInput,
 } from "../shared/types";
 
@@ -29,7 +32,7 @@ const post = <T>(path: string, body?: unknown) =>
 
 export const api = {
   async listCases() {
-    return (await request<CaseListResponse>("/api/cases")).cases;
+    return request<CaseListResponse>("/api/cases");
   },
 
   async getCase(caseId: string) {
@@ -42,6 +45,14 @@ export const api = {
 
   async simulateInboundText(input: InboundSmsInput) {
     return (await post<RepairResponse>("/api/sms/inbound", input)).repair;
+  },
+
+  async simulateDemoMessage(input: DemoMessageInput) {
+    return (await post<RepairResponse>("/api/demo/messages", input)).repair;
+  },
+
+  async resetDemo() {
+    return post<{ resetAt: string; caseId: string }>("/api/demo/reset");
   },
 
   async triage(caseId: string, input: TriageInput) {
@@ -95,6 +106,14 @@ export const api = {
 
   async approve(caseId: string, approvedBy = "Property manager") {
     return (await post<RepairResponse>(`/api/cases/${caseId}/approve`, { approvedBy })).repair;
+  },
+
+  async recordTenantAccessAuthorization(caseId: string, input: TenantAccessAuthorizationInput) {
+    return (await post<RepairResponse>(`/api/cases/${caseId}/access-authorization`, input)).repair;
+  },
+
+  async recordContractorConfirmation(caseId: string, input: ContractorConfirmationInput) {
+    return (await post<RepairResponse>(`/api/cases/${caseId}/contractor-confirmation`, input)).repair;
   },
 
   async book(caseId: string) {

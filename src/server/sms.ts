@@ -1,3 +1,4 @@
+import { isDemoMode } from "./demo.js";
 import { repairStore } from "./store.js";
 
 const twilioConfigured = () =>
@@ -7,10 +8,18 @@ const twilioConfigured = () =>
       process.env.TWILIO_PHONE_NUMBER,
   );
 
-export const sendText = async (to: string, body: string) => {
+export const sendText = async (to: string, body: string, caseId?: string) => {
+  const existing = caseId ? repairStore.findOutbox(caseId, body) : undefined;
+  if (existing) return { delivery: existing.delivery, message: existing };
+
+  if (isDemoMode()) {
+    const message = repairStore.addOutbox(to, body, "demo_outbox", caseId);
+    return { delivery: "demo_outbox" as const, message };
+  }
+
   if (!twilioConfigured()) {
-    repairStore.addOutbox(to, body, "local_outbox");
-    return { delivery: "local_outbox" as const };
+    const message = repairStore.addOutbox(to, body, "local_outbox", caseId);
+    return { delivery: "local_outbox" as const, message };
   }
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID as string;
@@ -33,6 +42,6 @@ export const sendText = async (to: string, body: string) => {
     throw new Error(`Twilio rejected the message (${response.status}).`);
   }
 
-  repairStore.addOutbox(to, body, "twilio");
-  return { delivery: "twilio" as const };
+  const message = repairStore.addOutbox(to, body, "twilio", caseId);
+  return { delivery: "twilio" as const, message };
 };

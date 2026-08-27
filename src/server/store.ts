@@ -4,38 +4,47 @@ import { dirname, resolve } from "node:path";
 import type {
   ActivityEvent,
   AppStore,
+  ContractorConfirmationInput,
+  DemoMessageInput,
   InboundSmsInput,
+  OutboundText,
   ProposalInput,
   RepairCase,
   RepairMessage,
+  TenantAccessAuthorizationInput,
   TriageInput,
 } from "../shared/types.js";
 import { contractorSelection } from "./contractor-selection.js";
+import { createDemoStore, DEMO_CASE_ID, isDemoMode } from "./demo.js";
 import { seedStore } from "./seed.js";
 
-const storePath = resolve(process.cwd(), ".data/store.json");
+const storePath = () =>
+  resolve(process.cwd(), isDemoMode() ? ".data/demo-store.json" : ".data/store.json");
 
-const cloneSeed = (): AppStore => structuredClone(seedStore);
+const cloneSeed = (resetAt = new Date()): AppStore =>
+  isDemoMode() ? createDemoStore(resetAt) : structuredClone(seedStore);
 
 const ensureStore = () => {
-  mkdirSync(dirname(storePath), { recursive: true });
+  const path = storePath();
+  mkdirSync(dirname(path), { recursive: true });
   try {
-    readFileSync(storePath, "utf8");
+    readFileSync(path, "utf8");
   } catch {
-    writeFileSync(storePath, JSON.stringify(cloneSeed(), null, 2));
+    writeFileSync(path, JSON.stringify(cloneSeed(), null, 2));
   }
 };
 
 const readStore = (): AppStore => {
   ensureStore();
-  return JSON.parse(readFileSync(storePath, "utf8")) as AppStore;
+  return JSON.parse(readFileSync(storePath(), "utf8")) as AppStore;
 };
 
 const writeStore = (store: AppStore) => {
-  mkdirSync(dirname(storePath), { recursive: true });
-  const temporaryPath = `${storePath}.next`;
+  const path = storePath();
+  mkdirSync(dirname(path), { recursive: true });
+  const temporaryPath = `${path}.next`;
   writeFileSync(temporaryPath, JSON.stringify(store, null, 2));
-  renameSync(temporaryPath, storePath);
+  renameSync(temporaryPath, path);
 };
 
 const now = () => new Date().toISOString();
@@ -56,23 +65,101 @@ const message = (
   party: RepairMessage["party"],
   body: string,
   channel: RepairMessage["channel"],
+  details: Pick<RepairMessage, "from" | "mediaId"> = {},
 ): RepairMessage => ({
   id: randomUUID(),
   party,
   body,
   channel,
+  ...details,
   sentAt: now(),
 });
 
-const availabilityLabel = (value: string) =>
+const availabilityLabel = (value: string, timeZone = "UTC") =>
   new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "UTC",
+    timeZone,
   }).format(new Date(value));
+
+const applyInboundMessage = (
+  repair: RepairCase,
+  input: {
+    party: "tenant" | "contractor";
+    from?: string;
+    body: string;
+    mediaId?: RepairMessage["mediaId"];
+    activityLabel: string;
+  },
+) => {
+  repair.messages.push(
+    message(input.party, input.body, input.mediaId ? "mms" : "sms", {
+      from: input.from,
+      mediaId: input.mediaId,
+    }),
+  );
+  repair.activity.push(activity(input.activityLabel, input.party, input.body));
+};
+
+const messageEvidenceForCurrentProposal = (
+  repair: RepairCase,
+  input: { sourceMessageId: string; proposalId: string; timeWindow: string },
+  party: "tenant" | "contractor",
+) => {
+  if (!repair.proposal) throw new Error("There is no current contractor proposal.");
+  const evidenceName = party === "tenant" ? "Tenant access" : "Contractor confirmation";
+  if (
+    repair.proposal.id !== input.proposalId ||
+    repair.proposal.timeWindow !== input.timeWindow
+  ) {
+    throw new Error(`${evidenceName} must match the current proposal and visit window.`);
+  }
+  const sourceMessage = repair.messages.find((item) => item.id === input.sourceMessageId);
+  if (sourceMessage?.party !== party) {
+    throw new Error(`${evidenceName} requires a ${party} message from this repair.`);
+  }
+  const expectedFrom = party === "tenant" ? repair.tenant.phone : repair.proposal.contractorPhone;
+  if (sourceMessage.from !== expectedFrom) {
+    throw new Error(
+      party === "tenant"
+        ? "Tenant access requires a message from the current tenant."
+        : "Contractor confirmation requires a message from the proposed contractor.",
+    );
+  }
+  return { ...input, recordedAt: now() };
+};
+
+const matchesCurrentProposal = (
+  evidence: { proposalId: string; timeWindow: string } | undefined,
+  proposal: RepairCase["proposal"],
+) =>
+  Boolean(
+    evidence &&
+      proposal &&
+      evidence.proposalId === proposal.id &&
+      evidence.timeWindow === proposal.timeWindow,
+  );
+
+const clearApprovalAndConfirmations = (repair: RepairCase) => {
+  repair.approval = undefined;
+  repair.tenantAccessAuthorization = undefined;
+  repair.contractorConfirmation = undefined;
+};
+
+export const appointmentNotification = (repair: RepairCase) => ({
+  to: repair.tenant.phone,
+  body: `Your repair visit is booked with ${repair.appointment?.contractorName} for ${repair.appointment?.timeWindow}.`,
+});
+
+const outboxMessage = (
+  to: string,
+  body: string,
+  delivery: OutboundText["delivery"],
+  caseId?: string,
+): OutboundText => ({ id: randomUUID(), caseId, to, body, sentAt: now(), delivery });
 
 const mutateCase = (caseId: string, mutate: (repair: RepairCase, store: AppStore) => void) => {
   const store = readStore();
@@ -133,14 +220,14 @@ export const repairStore = {
         contractorPhone: agreement.contractorPhone,
         timeWindow: input.timeWindow,
         costPence: agreement.pricing.amountPence,
-        currency: "GBP",
+        currency: agreement.pricing.currency,
         reason: input.reason,
         source: "agreement",
         agreementId: agreement.id,
         priceBasis: agreement.pricing.description,
         status: "proposed",
       };
-      selectedRepair.approval = undefined;
+      clearApprovalAndConfirmations(selectedRepair);
       selectedRepair.status = "waiting_for_approval";
       selectedRepair.activity.push(
         activity(`${agreement.contractorName} offered a time`, "contractor", input.timeWindow),
@@ -167,7 +254,7 @@ export const repairStore = {
       selectedRepair.contractorAttempts.push(update.attempt);
       if (selectedRepair.proposal?.agreementId === input.agreementId) {
         selectedRepair.proposal = undefined;
-        selectedRepair.approval = undefined;
+        clearApprovalAndConfirmations(selectedRepair);
         selectedRepair.status = "new";
       }
       selectedRepair.activity.push(
@@ -176,6 +263,7 @@ export const repairStore = {
           "contractor",
           `${update.attempt.reason} Earliest availability: ${availabilityLabel(
             update.attempt.earliestAvailableAt,
+            repair.demoFixture?.organization.timeZone,
           )}.`,
         ),
       );
@@ -227,7 +315,10 @@ export const repairStore = {
         activity(
           `${input.requestedBy} requested external contractor options`,
           "manager",
-          `Options required by ${availabilityLabel(input.requiredBy)}.`,
+          `Options required by ${availabilityLabel(
+            input.requiredBy,
+            repair.demoFixture?.organization.timeZone,
+          )}.`,
         ),
       );
     });
@@ -240,8 +331,12 @@ export const repairStore = {
     );
 
     if (existing) {
-      existing.messages.push(message("tenant", input.body, "sms"));
-      existing.activity.push(activity(`${existing.tenant.name} sent a text`, "tenant", input.body));
+      applyInboundMessage(existing, {
+        party: "tenant",
+        from: input.from,
+        body: input.body,
+        activityLabel: `${existing.tenant.name} sent a text`,
+      });
       existing.updatedAt = now();
       writeStore(store);
       return existing;
@@ -261,13 +356,42 @@ export const repairStore = {
       tenant: { name: tenantName, unit, phone: input.from },
       createdAt,
       updatedAt: createdAt,
-      messages: [message("tenant", input.body, "sms")],
-      activity: [activity(`${tenantName} reported a repair`, "tenant", input.body)],
+      messages: [],
+      activity: [],
       contractorAttempts: [],
     };
+    applyInboundMessage(repair, {
+      party: "tenant",
+      from: input.from,
+      body: input.body,
+      activityLabel: `${tenantName} reported a repair`,
+    });
     store.cases.push(repair);
     writeStore(store);
     return repair;
+  },
+
+  receiveDemoMessage(input: DemoMessageInput) {
+    if (!isDemoMode()) throw new Error("The synthetic message simulator is disabled.");
+    return mutateCase(DEMO_CASE_ID, (repair, store) => {
+      const party = input.sender;
+      const from =
+        party === "tenant"
+          ? repair.tenant.phone
+          : store.contractorAgreements.find(
+              (agreement) => agreement.id === repair.demoFixture?.backupAgreementId,
+            )?.contractorPhone;
+      applyInboundMessage(repair, {
+        party,
+        from,
+        body: input.body,
+        mediaId: input.mediaId,
+        activityLabel:
+          party === "tenant"
+            ? "Maya Chen (demo tenant) sent a simulated message"
+            : "Three Rivers Demo Plumbing sent a simulated message",
+      });
+    });
   },
 
   triage(caseId: string, input: TriageInput) {
@@ -282,9 +406,16 @@ export const repairStore = {
     });
   },
 
-  addMessage(caseId: string, party: RepairMessage["party"], body: string) {
+  addMessage(
+    caseId: string,
+    party: RepairMessage["party"],
+    body: string,
+    details: Pick<RepairMessage, "from"> = {},
+  ) {
     return mutateCase(caseId, (repair) => {
-      repair.messages.push(message(party, body, party === "manager" ? "dashboard" : "sms"));
+      repair.messages.push(
+        message(party, body, party === "manager" ? "dashboard" : "sms", details),
+      );
       const name = party === "tenant" ? repair.tenant.name : party[0].toUpperCase() + party.slice(1);
       repair.activity.push(activity(`${name} sent a message`, party, body));
     });
@@ -308,7 +439,7 @@ export const repairStore = {
         priceBasis: "External quote",
         status: "proposed",
       };
-      repair.approval = undefined;
+      clearApprovalAndConfirmations(repair);
       repair.status = "waiting_for_approval";
       repair.activity.push(
         activity(`${input.contractorName} offered a time`, "contractor", input.timeWindow),
@@ -323,17 +454,70 @@ export const repairStore = {
       if (repair.status !== "waiting_for_approval") {
         throw new Error("This repair is not waiting for approval.");
       }
-      repair.approval = { approvedBy, approvedAt: now() };
+      repair.approval = {
+        approvedBy,
+        approvedAt: now(),
+        proposalId: repair.proposal.id,
+        timeWindow: repair.proposal.timeWindow,
+      };
       repair.proposal.status = "approved";
       repair.status = "approved";
       repair.activity.push(activity(`${approvedBy} approved the repair`, "manager"));
     });
   },
 
-  book(caseId: string) {
+  recordTenantAccessAuthorization(
+    caseId: string,
+    input: TenantAccessAuthorizationInput,
+  ) {
     return mutateCase(caseId, (repair) => {
-      if (!repair.proposal || !repair.approval || repair.status !== "approved") {
+      repair.tenantAccessAuthorization = messageEvidenceForCurrentProposal(
+        repair,
+        input,
+        "tenant",
+      );
+      repair.activity.push(
+        activity("Tenant access recorded", "tenant", input.timeWindow),
+      );
+    });
+  },
+
+  recordContractorConfirmation(
+    caseId: string,
+    input: ContractorConfirmationInput,
+  ) {
+    return mutateCase(caseId, (repair) => {
+      repair.contractorConfirmation = messageEvidenceForCurrentProposal(
+        repair,
+        input,
+        "contractor",
+      );
+      repair.activity.push(
+        activity("Contractor confirmation recorded", "contractor", input.timeWindow),
+      );
+    });
+  },
+
+  book(caseId: string) {
+    return mutateCase(caseId, (repair, store) => {
+      if (repair.appointment?.notificationId) throw new Error("This visit is already booked.");
+      if (repair.appointment) return;
+      if (
+        !repair.proposal ||
+        repair.status !== "approved" ||
+        !matchesCurrentProposal(repair.approval, repair.proposal)
+      ) {
         throw new Error("The property manager must approve the proposal before booking.");
+      }
+      if (!matchesCurrentProposal(repair.tenantAccessAuthorization, repair.proposal)) {
+        throw new Error(
+          "Tenant access must match the current proposal and visit window before booking.",
+        );
+      }
+      if (!matchesCurrentProposal(repair.contractorConfirmation, repair.proposal)) {
+        throw new Error(
+          "Contractor confirmation must match the current proposal and visit window before booking.",
+        );
       }
       repair.proposal.status = "booked";
       repair.appointment = {
@@ -345,21 +529,47 @@ export const repairStore = {
       repair.activity.push(
         activity(`Visit booked with ${repair.proposal.contractorName}`, "agent", repair.proposal.timeWindow),
       );
+      if (isDemoMode()) {
+        const { to, body } = appointmentNotification(repair);
+        const notification = outboxMessage(to, body, "demo_outbox", repair.id);
+        store.outbox.push(notification);
+        repair.notifications = [notification];
+        repair.appointment.notificationId = notification.id;
+      }
     });
   },
 
-  addOutbox(to: string, body: string, delivery: "local_outbox" | "twilio") {
+  findOutbox(caseId: string, body: string) {
+    return readStore().outbox.find((item) => item.caseId === caseId && item.body === body);
+  },
+
+  addOutbox(to: string, body: string, delivery: OutboundText["delivery"], caseId?: string) {
     const store = readStore();
-    store.outbox.push({ id: randomUUID(), to, body, sentAt: now(), delivery });
+    const existing = caseId
+      ? store.outbox.find((item) => item.caseId === caseId && item.body === body)
+      : undefined;
+    if (existing) return existing;
+    const outbound = outboxMessage(to, body, delivery, caseId);
+    store.outbox.push(outbound);
     writeStore(store);
+    return outbound;
+  },
+
+  recordAppointmentNotification(caseId: string, notification: OutboundText) {
+    return mutateCase(caseId, (repair) => {
+      if (!repair.appointment) throw new Error("There is no booked visit to notify.");
+      if (repair.appointment.notificationId === notification.id) return;
+      repair.appointment.notificationId = notification.id;
+      repair.notifications = [notification];
+    });
   },
 
   outbox() {
     return readStore().outbox;
   },
 
-  reset() {
-    const store = cloneSeed();
+  reset(resetAt = new Date()) {
+    const store = cloneSeed(resetAt);
     writeStore(store);
     return store;
   },

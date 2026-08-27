@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { DemoMessageInput, InboundSmsInput } from "../shared/types";
 import { api } from "./api";
 import { AppHeader } from "./components/AppHeader";
 import { CaseWorkspace } from "./components/CaseWorkspace";
@@ -35,19 +36,25 @@ export default function App() {
     );
   };
 
-  const approveAndBook = async () => {
+  const approveProposal = async () => {
     if (!repairs.selected) return;
     await repairs.run(
-      "approve-book",
-      async () => {
-        const approved =
-          repairs.selected!.status === "approved"
-            ? repairs.selected!
-            : await api.approve(repairs.selected!.id);
-        repairs.replaceCase(approved);
-        return api.book(repairs.selected!.id);
-      },
-      "Visit booked and the tenant has been texted.",
+      "approve-proposal",
+      () =>
+        api.approve(
+          repairs.selected!.id,
+          repairs.demoMode ? "Priya Shah (demo manager)" : "Property manager",
+        ),
+      "Contractor and price approved.",
+    );
+  };
+
+  const bookVisit = async () => {
+    if (!repairs.selected) return;
+    await repairs.run(
+      "book-visit",
+      () => api.book(repairs.selected!.id),
+      "Visit booked and the tenant notification is recorded.",
     );
   };
 
@@ -58,30 +65,38 @@ export default function App() {
       () =>
         api.requestExternalSearch(
           repairs.selected!.id,
-          "Property manager",
+          repairs.demoMode ? "Priya Shah (demo manager)" : "Property manager",
           requiredBy,
         ),
       "The agent can now look for external options for this repair.",
     );
   };
 
-  const simulateSms = async (input: Parameters<typeof api.simulateInboundText>[0]) => {
+  const simulateSms = async (input: DemoMessageInput | InboundSmsInput) => {
     await repairs.run(
       "simulate-sms",
-      () => api.simulateInboundText(input),
+      () => ("sender" in input ? api.simulateDemoMessage(input) : api.simulateInboundText(input)),
       "Incoming text received and added to the repair queue.",
     );
   };
 
+  const resetDemo = async () => {
+    if (!window.confirm("Reset the shared synthetic demo to a clean repair?")) return;
+    await repairs.resetDemo();
+  };
+
   return (
     <div className="app-shell">
-      <AppHeader toolStatus={toolStatus} />
+      <AppHeader toolStatus={toolStatus} demoMode={repairs.demoMode} />
       <UtilityNav />
       <RepairQueue
         cases={repairs.cases}
         selectedId={repairs.selectedId}
         onSelect={repairs.selectCase}
         onOpenSmsSimulator={() => setSmsSimulatorOpen(true)}
+        demoMode={repairs.demoMode}
+        resetting={repairs.busy === "demo-reset"}
+        onResetDemo={resetDemo}
       />
       {repairs.loading ? (
         <LoadingShell />
@@ -91,7 +106,8 @@ export default function App() {
           busy={repairs.busy}
           onSendTenantMessage={sendTenantMessage}
           onSendManagerNote={sendManagerNote}
-          onApproveAndBook={approveAndBook}
+          onApprove={approveProposal}
+          onBook={bookVisit}
           onRequestExternalOptions={requestExternalOptions}
         />
       ) : (
@@ -107,6 +123,7 @@ export default function App() {
         open={smsSimulatorOpen}
         onClose={() => setSmsSimulatorOpen(false)}
         onSend={simulateSms}
+        demoMode={repairs.demoMode}
       />
     </div>
   );

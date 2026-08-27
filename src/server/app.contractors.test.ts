@@ -1,7 +1,8 @@
 import { EventEmitter } from "node:events";
 import httpMocks from "node-mocks-http";
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "./app.js";
+import * as sms from "./sms.js";
 import { repairStore } from "./store.js";
 
 const app = createApp();
@@ -21,11 +22,32 @@ async function callApp(method: "GET" | "POST", url: string, body?: Record<string
   };
 }
 
+async function recordCurrentBookingFacts() {
+  const contractorMessage = repairStore.addMessage(
+    "repair-1001",
+    "contractor",
+    "We confirm Today, 3:30–4:30 pm.",
+    { from: "020 7946 0100" },
+  ).messages.at(-1)!;
+  await callApp("POST", "/api/cases/repair-1001/approve", { approvedBy: "Priya Shah" });
+  await callApp("POST", "/api/cases/repair-1001/access-authorization", {
+    sourceMessageId: "message-1005",
+    proposalId: "proposal-1001",
+    timeWindow: "Today, 3:30–4:30 pm",
+  });
+  await callApp("POST", "/api/cases/repair-1001/contractor-confirmation", {
+    sourceMessageId: contractorMessage.id,
+    proposalId: "proposal-1001",
+    timeWindow: "Today, 3:30–4:30 pm",
+  });
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-08-26T12:00:00.000Z"));
   repairStore.reset();
 });
+afterEach(() => vi.restoreAllMocks());
 afterAll(() => {
   vi.useRealTimers();
   repairStore.reset();
@@ -119,6 +141,187 @@ describe("contractor workflow HTTP interface", () => {
       timeWindow: "Today, 3:30–4:30 pm",
       status: "proposed",
     });
+  });
+
+  it("records tenant access evidence through the workflow API", async () => {
+    const response = await callApp(
+      "POST",
+      "/api/cases/repair-1001/access-authorization",
+      {
+        sourceMessageId: "message-1005",
+        proposalId: "proposal-1001",
+        timeWindow: "Today, 3:30–4:30 pm",
+      },
+    );
+
+    expect(response).toMatchObject({
+      status: 200,
+      body: {
+        repair: {
+          tenantAccessAuthorization: {
+            sourceMessageId: "message-1005",
+            proposalId: "proposal-1001",
+            timeWindow: "Today, 3:30–4:30 pm",
+          },
+        },
+      },
+    });
+  });
+
+  it("records contractor confirmation evidence through the workflow API", async () => {
+    const sourceMessage = repairStore.addMessage(
+      "repair-1001",
+      "contractor",
+      "We confirm Today, 3:30–4:30 pm.",
+      { from: "020 7946 0100" },
+    ).messages.at(-1)!;
+    const response = await callApp(
+      "POST",
+      "/api/cases/repair-1001/contractor-confirmation",
+      {
+        sourceMessageId: sourceMessage.id,
+        proposalId: "proposal-1001",
+        timeWindow: "Today, 3:30–4:30 pm",
+      },
+    );
+
+    expect(response).toMatchObject({
+      status: 200,
+      body: {
+        repair: {
+          contractorConfirmation: {
+            sourceMessageId: sourceMessage.id,
+            proposalId: "proposal-1001",
+            timeWindow: "Today, 3:30–4:30 pm",
+          },
+        },
+      },
+    });
+  });
+
+  it("rejects booking evidence from the wrong message party", async () => {
+    const sourceMessage = repairStore.addMessage(
+      "repair-1001",
+      "contractor",
+      "We confirm Today, 3:30–4:30 pm.",
+      { from: "020 7946 0100" },
+    ).messages.at(-1)!;
+    const response = await callApp(
+      "POST",
+      "/api/cases/repair-1001/access-authorization",
+      {
+        sourceMessageId: sourceMessage.id,
+        proposalId: "proposal-1001",
+        timeWindow: "Today, 3:30–4:30 pm",
+      },
+    );
+
+    expect(response).toEqual({
+      status: 409,
+      body: { error: "Tenant access requires a tenant message from this repair." },
+    });
+  });
+
+  it("rejects each missing booking gate independently", async () => {
+    const missingManager = await callApp("POST", "/api/cases/repair-1001/book");
+
+    repairStore.reset();
+    await callApp("POST", "/api/cases/repair-1001/approve", { approvedBy: "Priya Shah" });
+    const missingTenantAccess = await callApp("POST", "/api/cases/repair-1001/book");
+
+    repairStore.reset();
+    await callApp("POST", "/api/cases/repair-1001/approve", { approvedBy: "Priya Shah" });
+    await callApp("POST", "/api/cases/repair-1001/access-authorization", {
+      sourceMessageId: "message-1005",
+      proposalId: "proposal-1001",
+      timeWindow: "Today, 3:30–4:30 pm",
+    });
+    const missingContractorConfirmation = await callApp(
+      "POST",
+      "/api/cases/repair-1001/book",
+    );
+
+    expect({ missingManager, missingTenantAccess, missingContractorConfirmation }).toEqual({
+      missingManager: {
+        status: 409,
+        body: { error: "The property manager must approve the proposal before booking." },
+      },
+      missingTenantAccess: {
+        status: 409,
+        body: {
+          error: "Tenant access must match the current proposal and visit window before booking.",
+        },
+      },
+      missingContractorConfirmation: {
+        status: 409,
+        body: {
+          error:
+            "Contractor confirmation must match the current proposal and visit window before booking.",
+        },
+      },
+    });
+  });
+
+  it("invalidates stale booking facts when the proposal window changes", async () => {
+    await recordCurrentBookingFacts();
+
+    const replaced = await callApp("POST", "/api/cases/repair-1001/contractor-proposal", {
+      agreementId: "agreement-hawthorn-plumbing-primary",
+      timeWindow: "Today, 5:00–6:00 pm",
+      reason: "The visit window changed.",
+    });
+    const repair = (replaced.body as { repair: Record<string, unknown> }).repair;
+
+    expect(repair).not.toHaveProperty("approval");
+    expect(repair).not.toHaveProperty("tenantAccessAuthorization");
+    expect(repair).not.toHaveProperty("contractorConfirmation");
+  });
+
+  it("books once and sends one notification after all three current gates match", async () => {
+    await recordCurrentBookingFacts();
+
+    const booked = await callApp("POST", "/api/cases/repair-1001/book");
+    const duplicate = await callApp("POST", "/api/cases/repair-1001/book");
+    const outbox = await callApp("GET", "/api/outbox");
+
+    expect({ booked, duplicate, outbox }).toMatchObject({
+      booked: {
+        status: 200,
+        body: {
+          repair: {
+            status: "scheduled",
+            notifications: [{ caseId: "repair-1001", delivery: "local_outbox" }],
+          },
+        },
+      },
+      duplicate: { status: 409, body: { error: "This visit is already booked." } },
+      outbox: {
+        status: 200,
+        body: { messages: [{ caseId: "repair-1001", to: "+447700900123" }] },
+      },
+    });
+  });
+
+  it("retries a failed booking notification without recording another appointment", async () => {
+    await recordCurrentBookingFacts();
+    vi.spyOn(sms, "sendText").mockRejectedValueOnce(new Error("Message provider unavailable."));
+
+    const failed = await callApp("POST", "/api/cases/repair-1001/book");
+    const pending = repairStore.get("repair-1001");
+    const retried = await callApp("POST", "/api/cases/repair-1001/book");
+    const repaired = repairStore.get("repair-1001");
+
+    expect(failed).toEqual({
+      status: 409,
+      body: { error: "Message provider unavailable." },
+    });
+    expect(pending.appointment).not.toHaveProperty("notificationId");
+    expect(retried).toMatchObject({
+      status: 200,
+      body: { repair: { appointment: { notificationId: expect.any(String) } } },
+    });
+    expect(repaired.activity.filter(({ label }) => label.startsWith("Visit booked"))).toHaveLength(1);
+    expect(repairStore.outbox().filter(({ caseId }) => caseId === "repair-1001")).toHaveLength(1);
   });
 
   it("records primary unavailability and returns the approved backup", async () => {

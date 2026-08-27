@@ -38,6 +38,14 @@ npm test
 npm run build
 ```
 
+Start the isolated judge demo with provider credentials unset:
+
+```bash
+DEMO_MODE=true npm run dev
+```
+
+Demo mode uses a separate disposable store, fixed synthetic Pennsylvania identities, an in-app outbox, and an empty voice-call allowlist. The dashboard can reset the shared fixture; startup fails if Twilio, OpenAI voice, or a voice destination is configured.
+
 Without Twilio credentials, outbound texts are recorded at `GET /api/outbox`. Use “Test an incoming text” in the development dashboard to exercise the same webhook path a phone provider uses.
 
 ## Connect Twilio
@@ -73,6 +81,8 @@ The dashboard registers these tools when the browser exposes the WebMCP producer
 - `record_preferred_contractor_unavailable`
 - `start_external_contractor_search`
 - `propose_external_contractor_visit`
+- `record_tenant_access_authorization`
+- `record_contractor_confirmation`
 - `book_approved_visit`
 
 The preferred route takes contractor identity and price from the stored agreement. An agent cannot skip the primary agreement, claim a manager requested fallback, or add an external quote before the server authorizes external search.
@@ -102,4 +112,4 @@ tenant SMS ──> /api/sms/inbound ──> repair store ──> manager dashboa
 
 ## Safety invariant
 
-Booking is a server-side state transition, not a UI convention. A repair must have a contractor proposal and explicit property-manager approval before `book` succeeds. Tests cover the blocked and successful paths.
+Booking is a server-side state transition, not a UI convention. The current proposal and visit window need matching property-manager approval, tenant access authorization, and contractor confirmation before `book` succeeds. Tests cover the blocked and successful paths.

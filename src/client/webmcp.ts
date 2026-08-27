@@ -125,6 +125,24 @@ const externalProposalSchema = {
   additionalProperties: false,
 } as const satisfies JsonSchemaForInference;
 
+const proposalMessageEvidenceSchema = {
+  type: "object",
+  properties: {
+    caseId: { type: "string", description: "The repair case ID." },
+    sourceMessageId: {
+      type: "string",
+      description: "The source tenant or contractor message ID from the repair case.",
+    },
+    proposalId: { type: "string", description: "The current contractor proposal ID." },
+    timeWindow: {
+      type: "string",
+      description: "The exact visit window on the current contractor proposal.",
+    },
+  },
+  required: ["caseId", "sourceMessageId", "proposalId", "timeWindow"],
+  additionalProperties: false,
+} as const satisfies JsonSchemaForInference;
+
 export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): ToolStatus {
   const [status, setStatus] = useState<ToolStatus>("unavailable");
   const casesRef = useRef(cases);
@@ -173,7 +191,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "get_repair_case",
               description:
-                "Get the full shared record for one repair, including tenant texts, access notes, proposal, approval, appointment, and activity history.",
+                "Get the full shared record for one repair, including messages, proposal, manager approval, tenant access authorization, contractor confirmation, appointment, linked notifications, and activity history.",
               inputSchema: caseIdSchema,
               annotations: { readOnlyHint: true },
               execute: async ({ caseId }) => toolResult(await api.getCase(caseId)),
@@ -288,9 +306,37 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
           ),
           modelContext.registerTool(
             {
+              name: "record_tenant_access_authorization",
+              description:
+                "Record tenant access only from the current tenant's message for the current proposal and exact visit window. This does not approve or book the visit.",
+              inputSchema: proposalMessageEvidenceSchema,
+              execute: async ({ caseId, ...input }) => {
+                const repair = await api.recordTenantAccessAuthorization(caseId, input);
+                onChangedRef.current(repair);
+                return toolResult({ ok: true, evidence: repair.tenantAccessAuthorization, repair });
+              },
+            },
+            { signal: controller.signal },
+          ),
+          modelContext.registerTool(
+            {
+              name: "record_contractor_confirmation",
+              description:
+                "Record confirmation only from the current proposed contractor's message for the current proposal and exact visit window. This does not approve or book the visit.",
+              inputSchema: proposalMessageEvidenceSchema,
+              execute: async ({ caseId, ...input }) => {
+                const repair = await api.recordContractorConfirmation(caseId, input);
+                onChangedRef.current(repair);
+                return toolResult({ ok: true, evidence: repair.contractorConfirmation, repair });
+              },
+            },
+            { signal: controller.signal },
+          ),
+          modelContext.registerTool(
+            {
               name: "book_approved_visit",
               description:
-                "Book the contractor visit only after the property manager has approved the current proposal. The server rejects early booking and texts the tenant after success.",
+                "Book only after manager approval, tenant access authorization, and contractor confirmation all match the current proposal and exact visit window. The server rejects early booking and records the tenant notification after success.",
               inputSchema: caseIdSchema,
               execute: async ({ caseId }) => {
                 const repair = await api.book(caseId);

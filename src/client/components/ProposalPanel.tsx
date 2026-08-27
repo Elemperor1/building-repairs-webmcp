@@ -1,29 +1,64 @@
 import { CalendarDays, Check, ReceiptText, Wrench } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { RepairCase } from "../../shared/types";
+import { formatTimeWindow } from "../time";
 
 interface ProposalPanelProps {
   repair: RepairCase;
   busy?: string;
-  onApproveAndBook: () => Promise<void>;
+  onApprove: () => Promise<void>;
+  onBook: () => Promise<void>;
   onRequestExternalOptions: (requiredBy: string) => Promise<void>;
   onFocusAgentNote: () => void;
 }
 
-const money = (pence: number) =>
-  new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(
+const money = (pence: number, currency: "GBP" | "USD") =>
+  new Intl.NumberFormat(currency === "USD" ? "en-US" : "en-GB", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(
     pence / 100,
   );
+
+export const bookingStatus = (repair: RepairCase) => {
+  const proposal = repair.proposal;
+  const matchesProposal = (fact: { proposalId: string; timeWindow: string } | undefined) =>
+    Boolean(proposal && fact?.proposalId === proposal.id && fact.timeWindow === proposal.timeWindow);
+  const managerApproved = matchesProposal(repair.approval);
+  const tenantAuthorized = matchesProposal(repair.tenantAccessAuthorization);
+  const contractorConfirmed = matchesProposal(repair.contractorConfirmation);
+  const notification = repair.notifications?.find(({ id }) => id === repair.appointment?.notificationId);
+
+  return {
+    managerApproved,
+    tenantAuthorized,
+    contractorConfirmed,
+    notification,
+    action:
+      repair.status === "scheduled"
+        ? notification
+          ? ("complete" as const)
+          : ("retry" as const)
+        : !managerApproved
+          ? ("approve" as const)
+          : tenantAuthorized && contractorConfirmed
+            ? ("book" as const)
+            : ("wait" as const),
+  };
+};
 
 export function ProposalPanel({
   repair,
   busy,
-  onApproveAndBook,
+  onApprove,
+  onBook,
   onRequestExternalOptions,
   onFocusAgentNote,
 }: ProposalPanelProps) {
   const [requiredBy, setRequiredBy] = useState("");
   const proposal = repair.proposal;
+  const timeZone = repair.demoFixture?.organization.timeZone;
 
   if (!proposal) {
     const requestOptions = async (event: FormEvent) => {
@@ -72,7 +107,8 @@ export function ProposalPanel({
   }
 
   const isScheduled = repair.status === "scheduled";
-  const isApproved = repair.status === "approved";
+  const { action, managerApproved, tenantAuthorized, contractorConfirmed, notification } =
+    bookingStatus(repair);
 
   return (
     <section className="proposal-panel" aria-labelledby="proposal-heading">
@@ -94,32 +130,64 @@ export function ProposalPanel({
         </span>
         <p>
           <CalendarDays aria-hidden="true" />
-          {proposal.timeWindow}
+          {formatTimeWindow(proposal.timeWindow, timeZone)}
         </p>
         <p>
           <ReceiptText aria-hidden="true" />
-          {money(proposal.costPence)} · {proposal.priceBasis}
+          {money(proposal.costPence, proposal.currency)} · {proposal.priceBasis}
         </p>
         <p className="proposal-reason">{proposal.reason}</p>
       </div>
 
-      {isScheduled ? (
-        <div className="booking-confirmed" role="status">
-          <Check aria-hidden="true" />
-          <span>
-            <strong>Visit booked</strong>
-            {repair.appointment?.timeWindow}
-          </span>
+      {!isScheduled ? (
+        <div className="booking-gates">
+          <h3>Booking checks</h3>
+          <ul>
+            <li>{managerApproved ? "✓" : "○"} Manager approved contractor and price</li>
+            <li>{tenantAuthorized ? "✓" : "○"} Tenant authorized this visit window</li>
+            <li>{contractorConfirmed ? "✓" : "○"} Contractor confirmed this visit window</li>
+          </ul>
         </div>
+      ) : null}
+
+      {isScheduled ? (
+        <>
+          <div className="booking-confirmed" role="status">
+            <Check aria-hidden="true" />
+            <span>
+              <strong>Visit booked</strong>
+              {repair.appointment
+                ? formatTimeWindow(repair.appointment.timeWindow, timeZone)
+                : null}
+              <small>{notification ? "Tenant notification recorded" : "Tenant notification pending"}</small>
+            </span>
+          </div>
+          {action === "retry" ? (
+            <button
+              className="button button--primary"
+              type="button"
+              onClick={onBook}
+              disabled={busy === "book-visit"}
+            >
+              {busy === "book-visit" ? "Retrying…" : "Retry tenant notification"}
+            </button>
+          ) : null}
+        </>
       ) : (
         <div className="proposal-actions">
           <button
             className="button button--primary"
             type="button"
-            onClick={onApproveAndBook}
-            disabled={busy === "approve-book"}
+            onClick={managerApproved ? onBook : onApprove}
+            disabled={busy === "approve-proposal" || busy === "book-visit" || action === "wait"}
           >
-            {busy === "approve-book" ? "Booking…" : isApproved ? "Book approved visit" : "Approve and book"}
+            {busy === "approve-proposal"
+              ? "Approving…"
+              : busy === "book-visit"
+                ? "Booking…"
+                : managerApproved
+                  ? "Book confirmed visit"
+                  : "Approve contractor and price"}
           </button>
           <button className="button button--secondary" type="button" onClick={onFocusAgentNote}>
             Ask the agent a question
@@ -131,8 +199,16 @@ export function ProposalPanel({
         <h3>What happens next</h3>
         <p>
           {isScheduled
-            ? `${repair.tenant.name} has been texted the confirmed time.`
-            : "After approval, the agent will book the visit and text the tenant the confirmed time."}
+            ? notification
+              ? `A tenant notification for ${repair.tenant.name} is recorded.`
+              : "The visit is booked; the tenant notification is pending retry."
+            : !managerApproved
+              ? "Approve the current contractor and price. Access and contractor confirmation remain separate checks."
+              : !tenantAuthorized
+                ? "Waiting for tenant access authorization for this visit window."
+                : !contractorConfirmed
+                  ? "Waiting for the contractor to confirm this visit window."
+                  : "All three checks match. The confirmed visit can now be booked."}
         </p>
       </div>
     </section>

@@ -4,6 +4,7 @@ import { api } from "./api";
 
 export const useRepairCases = () => {
   const [cases, setCases] = useState<RepairCase[]>([]);
+  const [demoMode, setDemoMode] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>();
@@ -13,8 +14,9 @@ export const useRepairCases = () => {
   const refresh = useCallback(async (preferredId?: string) => {
     setError(undefined);
     try {
-      const nextCases = await api.listCases();
+      const { cases: nextCases, demoMode: nextDemoMode } = await api.listCases();
       setCases(nextCases);
+      setDemoMode(nextDemoMode);
       setSelectedId((current) => {
         const candidate = preferredId ?? current;
         return candidate && nextCases.some((item) => item.id === candidate)
@@ -72,8 +74,24 @@ export const useRepairCases = () => {
     [replaceCase],
   );
 
+  const resetDemo = useCallback(async () => {
+    setBusy("demo-reset");
+    setError(undefined);
+    try {
+      const { caseId } = await api.resetDemo();
+      await refresh(caseId);
+      setNotice("Synthetic demo reset to a clean repair.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The synthetic demo could not be reset.");
+      throw reason;
+    } finally {
+      setBusy(undefined);
+    }
+  }, [refresh]);
+
   return {
     cases,
+    demoMode,
     selected,
     selectedId,
     loading,
@@ -84,6 +102,7 @@ export const useRepairCases = () => {
     refresh,
     replaceCase,
     run,
+    resetDemo,
     clearError: () => setError(undefined),
   };
 };

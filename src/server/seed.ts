@@ -29,6 +29,7 @@ export const seedStore: AppStore = {
           body: "Hi, there’s water dripping from the ceiling near the bathroom light.",
           sentAt: createdAt,
           channel: "sms",
+          from: "+447700900123",
         },
         {
           id: "message-1002",
@@ -43,6 +44,7 @@ export const seedStore: AppStore = {
           body: "I turned the light off at the switch. No pooling, just dripping.",
           sentAt: "2026-08-26T11:44:00.000Z",
           channel: "sms",
+          from: "+447700900123",
         },
         {
           id: "message-1004",
@@ -57,6 +59,7 @@ export const seedStore: AppStore = {
           body: "Yes, after 3:00 pm is perfect.",
           sentAt: "2026-08-26T11:45:00.000Z",
           channel: "sms",
+          from: "+447700900123",
         },
       ],
       activity: [
@@ -120,6 +123,7 @@ export const seedStore: AppStore = {
       pricing: {
         basis: "fixed",
         amountPence: 14500,
+        currency: "GBP",
         description: "Agreed emergency call-out and first hour",
       },
       coverageHours: {
@@ -145,6 +149,7 @@ export const seedStore: AppStore = {
       pricing: {
         basis: "fixed",
         amountPence: 16000,
+        currency: "GBP",
         description: "Backup agreement call-out and first hour",
       },
       coverageHours: {

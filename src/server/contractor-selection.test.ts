@@ -28,7 +28,12 @@ const agreement = (overrides: Partial<ContractorAgreement> = {}): ContractorAgre
   priority: 1,
   coveredWork: "Plumbing call-outs and first-hour labour",
   coveredSeverities: ["routine", "urgent", "emergency"],
-  pricing: { basis: "fixed", amountPence: 12500, description: "Agreed call-out and first hour" },
+  pricing: {
+    basis: "fixed",
+    amountPence: 12500,
+    currency: "GBP",
+    description: "Agreed call-out and first hour",
+  },
   coverageHours: {
     description: "Monday–Sunday, 08:00–20:00",
     timeZone: "Europe/London",

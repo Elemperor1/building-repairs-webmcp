@@ -1,6 +1,7 @@
 import { Send } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { RepairCase } from "../../shared/types";
+import { formatTime } from "../time";
 
 interface MessagesPanelProps {
   repair: RepairCase;
@@ -8,12 +9,10 @@ interface MessagesPanelProps {
   onSend: (message: string) => Promise<void>;
 }
 
-const shortTime = (value: string) =>
-  new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-
 export function MessagesPanel({ repair, busy, onSend }: MessagesPanelProps) {
   const [message, setMessage] = useState("");
-  const tenantMessages = repair.messages.filter((item) => item.party !== "manager");
+  const visibleMessages = repair.messages.filter((item) => item.party !== "manager");
+  const timeZone = repair.demoFixture?.organization.timeZone;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -25,16 +24,33 @@ export function MessagesPanel({ repair, busy, onSend }: MessagesPanelProps) {
 
   return (
     <section className="messages-panel" aria-labelledby="messages-heading">
-      <h2 id="messages-heading">Messages with {repair.tenant.name}</h2>
+      <h2 id="messages-heading">Messages for this repair</h2>
       <div className="message-thread" aria-live="polite">
-        {tenantMessages.map((item) => (
+        {visibleMessages.map((item) => (
           <div
             key={item.id}
-            className={item.party === "tenant" ? "message message--tenant" : "message message--agent"}
+            className={`message message--${item.party}`}
           >
+            <span className="message__sender">
+              {item.party === "tenant"
+                ? repair.tenant.name
+                : item.party === "contractor"
+                  ? repair.proposal?.contractorName ??
+                    (repair.demoFixture ? "Three Rivers Demo Plumbing" : "Contractor")
+                  : "Fix This agent"}
+            </span>
             <p>{item.body}</p>
+            {item.mediaId === "demo-bathroom-leak" ? (
+              <figure className="message-media">
+                <img
+                  src="/demo-bathroom-leak.svg"
+                  alt="Synthetic illustration of a bathroom ceiling leak near a light"
+                />
+                <figcaption>Bundled synthetic MMS fixture</figcaption>
+              </figure>
+            ) : null}
             <time dateTime={item.sentAt}>
-              {shortTime(item.sentAt)}
+              {formatTime(item.sentAt, timeZone)}
               {item.party === "agent" ? "  ✓✓" : ""}
             </time>
           </div>

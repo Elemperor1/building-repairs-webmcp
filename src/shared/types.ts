@@ -22,6 +22,7 @@ export interface ContractorAgreement {
   pricing: {
     basis: "fixed" | "rate_schedule";
     amountPence: number;
+    currency: "GBP" | "USD";
     description: string;
   };
   coverageHours: {
@@ -41,7 +42,9 @@ export interface RepairMessage {
   party: MessageParty;
   body: string;
   sentAt: string;
-  channel: "sms" | "dashboard";
+  channel: "sms" | "mms" | "dashboard";
+  from?: string;
+  mediaId?: "demo-bathroom-leak";
 }
 
 export interface ActivityEvent {
@@ -58,7 +61,7 @@ export interface ContractorProposal {
   contractorPhone: string;
   timeWindow: string;
   costPence: number;
-  currency: "GBP";
+  currency: "GBP" | "USD";
   reason: string;
   source: "agreement" | "external";
   agreementId?: string;
@@ -69,12 +72,56 @@ export interface ContractorProposal {
 export interface Approval {
   approvedBy: string;
   approvedAt: string;
+  proposalId: string;
+  timeWindow: string;
 }
+
+export interface TenantAccessAuthorization {
+  sourceMessageId: string;
+  proposalId: string;
+  timeWindow: string;
+  recordedAt: string;
+}
+
+export type TenantAccessAuthorizationInput = Omit<TenantAccessAuthorization, "recordedAt">;
+
+export interface ContractorConfirmation {
+  sourceMessageId: string;
+  proposalId: string;
+  timeWindow: string;
+  recordedAt: string;
+}
+
+export type ContractorConfirmationInput = Omit<ContractorConfirmation, "recordedAt">;
 
 export interface Appointment {
   contractorName: string;
   timeWindow: string;
   bookedAt: string;
+  notificationId?: string;
+}
+
+export interface DemoFixture {
+  organization: {
+    id: "demo-pa-org";
+    name: "Fix This Demo Property Management";
+    jurisdiction: "US-PA";
+    timeZone: "America/New_York";
+  };
+  building: {
+    id: "demo-pa-building";
+    name: "Hawthorn Court Demo Apartments";
+    address: "100 Demo Way, Pittsburgh, PA 15222";
+  };
+  manager: { id: "demo-manager-priya"; name: "Priya Shah (demo manager)" };
+  tenantId: "demo-tenant-maya";
+  mediaId: "demo-bathroom-leak";
+  resetAt: string;
+  primaryAgreementId: "demo-pa-plumbing-primary";
+  backupAgreementId: "demo-pa-plumbing-backup";
+  accessWindow: string;
+  primaryEarliestAvailableAt: string;
+  backupVisitWindow: string;
 }
 
 export interface RepairCase {
@@ -105,7 +152,11 @@ export interface RepairCase {
   externalSearch?: ExternalSearchAuthorization;
   proposal?: ContractorProposal;
   approval?: Approval;
+  tenantAccessAuthorization?: TenantAccessAuthorization;
+  contractorConfirmation?: ContractorConfirmation;
   appointment?: Appointment;
+  notifications?: OutboundText[];
+  demoFixture?: DemoFixture;
 }
 
 export interface ContractorAttempt {
@@ -132,10 +183,11 @@ export interface ExternalSearchAuthorization {
 
 export interface OutboundText {
   id: string;
+  caseId?: string;
   to: string;
   body: string;
   sentAt: string;
-  delivery: "local_outbox" | "twilio";
+  delivery: "demo_outbox" | "local_outbox" | "twilio";
 }
 
 export interface AppStore {
@@ -146,6 +198,7 @@ export interface AppStore {
 
 export interface CaseListResponse {
   cases: RepairCase[];
+  demoMode: boolean;
 }
 
 export interface InboundSmsInput {
@@ -153,6 +206,12 @@ export interface InboundSmsInput {
   body: string;
   tenantName?: string;
   unit?: string;
+}
+
+export interface DemoMessageInput {
+  sender: "tenant" | "contractor";
+  body: string;
+  mediaId?: "demo-bathroom-leak";
 }
 
 export interface TriageInput {

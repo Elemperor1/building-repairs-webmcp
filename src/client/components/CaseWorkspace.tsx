@@ -10,14 +10,15 @@ interface CaseWorkspaceProps {
   busy?: string;
   onSendTenantMessage: (message: string) => Promise<void>;
   onSendManagerNote: (note: string) => Promise<void>;
-  onApproveAndBook: () => Promise<void>;
+  onApprove: () => Promise<void>;
+  onBook: () => Promise<void>;
   onRequestExternalOptions: (requiredBy: string) => Promise<void>;
 }
 
 const statusCopy: Record<RepairCase["status"], string> = {
   new: "New repair",
   waiting_for_approval: "Waiting for your approval",
-  approved: "Approved — ready to book",
+  approved: "Manager approved",
   scheduled: "Visit scheduled",
   closed: "Repair closed",
 };
@@ -27,7 +28,8 @@ export function CaseWorkspace({
   busy,
   onSendTenantMessage,
   onSendManagerNote,
-  onApproveAndBook,
+  onApprove,
+  onBook,
   onRequestExternalOptions,
 }: CaseWorkspaceProps) {
   const [noteFocusToken, setNoteFocusToken] = useState(0);
@@ -53,7 +55,8 @@ export function CaseWorkspace({
           <ProposalPanel
             repair={repair}
             busy={busy}
-            onApproveAndBook={onApproveAndBook}
+            onApprove={onApprove}
+            onBook={onBook}
             onRequestExternalOptions={onRequestExternalOptions}
             onFocusAgentNote={() => setNoteFocusToken((value) => value + 1)}
           />

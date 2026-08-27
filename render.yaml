@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: fix-this-demo
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: DEMO_MODE
+        value: "true"

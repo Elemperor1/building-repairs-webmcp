@@ -1,6 +1,7 @@
 import { Check, Clock3, Phone } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 import type { RepairCase } from "../../shared/types";
+import { formatTime, formatTimeWindow } from "../time";
 
 interface ActivityRailProps {
   repair: RepairCase;
@@ -9,13 +10,11 @@ interface ActivityRailProps {
   onSendNote: (note: string) => Promise<void>;
 }
 
-const shortTime = (value: string) =>
-  new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-
 export function ActivityRail({ repair, busy, noteFocusToken, onSendNote }: ActivityRailProps) {
   const [note, setNote] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastToken = useRef(noteFocusToken);
+  const timeZone = repair.demoFixture?.organization.timeZone;
 
   if (lastToken.current !== noteFocusToken) {
     lastToken.current = noteFocusToken;
@@ -44,9 +43,9 @@ export function ActivityRail({ repair, busy, noteFocusToken, onSendNote }: Activ
                 </span>
                 <div>
                   <strong>{event.label}</strong>
-                  {event.detail ? <span>{event.detail}</span> : null}
+                  {event.detail ? <span>{formatTimeWindow(event.detail, timeZone)}</span> : null}
                 </div>
-                <time dateTime={event.occurredAt}>{shortTime(event.occurredAt)}</time>
+                <time dateTime={event.occurredAt}>{formatTime(event.occurredAt, timeZone)}</time>
                 {index < repair.activity.length - 1 ? <span className="activity-line" aria-hidden="true" /> : null}
               </li>
             );

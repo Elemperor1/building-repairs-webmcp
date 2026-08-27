@@ -1,10 +1,11 @@
-import { Building2, ChevronDown, Menu } from "lucide-react";
+import { Building2, ChevronDown, Menu, ShieldCheck } from "lucide-react";
 
 interface AppHeaderProps {
   toolStatus: "connected" | "unavailable" | "error";
+  demoMode: boolean;
 }
 
-export function AppHeader({ toolStatus }: AppHeaderProps) {
+export function AppHeader({ toolStatus, demoMode }: AppHeaderProps) {
   const statusLabel =
     toolStatus === "connected"
       ? "Agent tools connected"
@@ -21,14 +22,21 @@ export function AppHeader({ toolStatus }: AppHeaderProps) {
         <h1>Fix This</h1>
         <span>Repairs without the runaround.</span>
       </div>
+      {demoMode ? (
+        <div className="demo-banner" role="status">
+          <ShieldCheck aria-hidden="true" />
+          <strong>Synthetic Pennsylvania demo</strong>
+          <span>No real messages or calls</span>
+        </div>
+      ) : null}
       <div className="header-actions">
         <button
           className="building-picker"
           type="button"
-          aria-label="Choose building: 18 Hawthorn Court"
+          aria-label={`Choose building: ${demoMode ? "Hawthorn Court Demo Apartments" : "18 Hawthorn Court"}`}
         >
           <Building2 aria-hidden="true" />
-          <span>18 Hawthorn Court</span>
+          <span>{demoMode ? "Hawthorn Court Demo Apartments" : "18 Hawthorn Court"}</span>
           <ChevronDown aria-hidden="true" />
         </button>
         <div className={`tool-status tool-status--${toolStatus}`} role="status">
@@ -38,9 +46,9 @@ export function AppHeader({ toolStatus }: AppHeaderProps) {
         <button
           className="profile-button"
           type="button"
-          aria-label="PM — open property manager profile"
+          aria-label={demoMode ? "Priya Shah, demo manager" : "PM — open property manager profile"}
         >
-          PM
+          {demoMode ? "PS" : "PM"}
         </button>
       </div>
     </header>
