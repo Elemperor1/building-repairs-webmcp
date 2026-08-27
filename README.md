@@ -1,8 +1,10 @@
-# Building Repairs
+# Fix This
 
-Building Repairs is an SMS-first rental-maintenance coordinator. Tenants report problems by text, a browser agent can triage the case and prepare a contractor visit through WebMCP, and the property manager approves the cost and booking from one dashboard.
+**Repairs without the runaround.**
 
-![Building Repairs dashboard](docs/design/dashboard-implementation.png)
+Fix This is an SMS-first rental-maintenance coordinator. Tenants report what is broken by text, a browser agent can triage the case and prepare a contractor visit through WebMCP, and the property manager approves the cost and booking from one dashboard.
+
+![Fix This dashboard](docs/design/dashboard-implementation.png)
 
 ## What works
 
@@ -20,10 +22,10 @@ Manager approval is deliberately not a WebMCP tool. The browser agent can prepar
 
 ## Run locally
 
-Requirements: Node.js 20 or newer.
+Requirements: Node.js 22 or newer.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -39,6 +41,8 @@ npm run build
 Without Twilio credentials, outbound texts are recorded at `GET /api/outbox`. Use “Test an incoming text” in the development dashboard to exercise the same webhook path a phone provider uses.
 
 ## Connect Twilio
+
+Use this only in a controlled local test setup. Do not expose the current app with live provider credentials or real tenant data.
 
 Copy `.env.example` values into your runtime environment:
 

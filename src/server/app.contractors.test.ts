@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import httpMocks from "node-mocks-http";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "./app.js";
 import { repairStore } from "./store.js";
 
@@ -21,8 +21,15 @@ async function callApp(method: "GET" | "POST", url: string, body?: Record<string
   };
 }
 
-beforeEach(() => repairStore.reset());
-afterAll(() => repairStore.reset());
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-08-26T12:00:00.000Z"));
+  repairStore.reset();
+});
+afterAll(() => {
+  vi.useRealTimers();
+  repairStore.reset();
+});
 
 describe("contractor workflow HTTP interface", () => {
   it("returns the repair's first eligible approved contractor", async () => {

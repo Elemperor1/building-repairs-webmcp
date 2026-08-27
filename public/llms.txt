@@ -1,6 +1,8 @@
-# Building Repairs
+# Fix This
 
-Building Repairs is an SMS-first rental-maintenance coordination dashboard. Tenants report problems by text; a repair agent follows up and proposes a contractor visit; the property manager retains approval and booking control.
+Repairs without the runaround.
+
+Fix This is an SMS-first rental-maintenance coordination dashboard. Tenants report problems by text; a repair agent follows up and proposes a contractor visit; the property manager retains approval and booking control.
 
 - [Product overview](/)
 - [Health check](/api/health)

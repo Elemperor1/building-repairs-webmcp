@@ -144,6 +144,19 @@ p {
   font-weight: 720;
 }
 
+.brand-lockup {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.brand-lockup span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .header-actions {
   min-width: 0;
   margin-left: auto;
@@ -1337,6 +1350,10 @@ textarea::placeholder {
 
   .app-header h1 {
     font-size: 1.08rem;
+  }
+
+  .brand-lockup span {
+    display: none;
   }
 
   .header-actions {

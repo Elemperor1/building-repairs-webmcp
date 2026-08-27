@@ -1,6 +1,6 @@
 ---
-name: Building Repairs
-description: A calm dispatch desk for repairs that begin by text message.
+name: Fix This
+description: Repairs without the runaround.
 colors:
   background: "oklch(0.985 0 0)"
   surface: "oklch(1 0 0)"
@@ -126,7 +126,7 @@ components:
     padding: "10px 14px"
 ---
 
-# Design System: Building Repairs
+# Design System: Fix This
 
 ## Overview
 

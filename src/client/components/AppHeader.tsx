@@ -17,7 +17,10 @@ export function AppHeader({ toolStatus }: AppHeaderProps) {
       <button className="icon-button menu-button" aria-label="Open navigation" type="button">
         <Menu aria-hidden="true" />
       </button>
-      <h1>Building repairs</h1>
+      <div className="brand-lockup">
+        <h1>Fix This</h1>
+        <span>Repairs without the runaround.</span>
+      </div>
       <div className="header-actions">
         <button
           className="building-picker"
