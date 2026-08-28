@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Fix This event-driven repair agent — throwaway prototype</title>
+    <title>Fix This repair-agent safety check</title>
     <style>
       :root {
         color-scheme: light;
@@ -49,23 +49,6 @@
       }
       section { margin-top: 32px; }
       .panel { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: 0 1px 2px rgb(23 33 27 / 4%); }
-      .diagram { padding: 18px; }
-      .flow {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(130px, 1fr));
-        gap: 24px;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-      .flow li { position: relative; min-height: 116px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
-      .flow li:not(:last-child)::after { position: absolute; top: 42%; right: -20px; content: "→"; color: var(--accent); font-size: 1.2rem; font-weight: 800; }
-      .flow strong { display: block; margin-bottom: 6px; }
-      .flow span { display: block; color: var(--muted); font-size: 0.84rem; }
-      .phase-flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; color: var(--muted); font-size: 0.83rem; }
-      .phase-flow b { padding: 5px 8px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); }
-      .control-plane { margin: 14px 0 0; padding: 10px 12px; border-left: 3px solid var(--accent); background: #f7faf7; color: var(--muted); font-size: 0.84rem; }
-      .control-plane strong { color: var(--ink); }
       .outcome { margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: #104a36; }
       .outcome.warn { background: var(--warn-soft); color: var(--warn); }
       .outcome.bad { background: var(--bad-soft); color: var(--bad); }
@@ -96,16 +79,6 @@
       }
       button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
       button:focus-visible { outline: 3px solid #8ec9b2; outline-offset: 2px; }
-      button:disabled { cursor: default; opacity: 0.5; }
-      .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 0 0 10px; }
-      .tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: white; }
-      .walkthrough { padding: 18px; }
-      .walkthrough-copy { max-width: 780px; color: var(--muted); }
-      .steps { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
-      .step { display: grid; grid-template-columns: 32px minmax(180px, 300px) 1fr; align-items: center; gap: 10px; }
-      .step-number { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; background: var(--soft); color: var(--muted); font-size: 0.76rem; font-weight: 800; }
-      .step.done .step-number { background: var(--accent-soft); color: var(--accent); }
-      .step small { color: var(--muted); }
       .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
       .table-panel { padding: 16px; overflow: auto; }
       table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
@@ -121,11 +94,20 @@
       .invariants { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-size: 0.82rem; font-weight: 750; }
       .invariants.bad { background: var(--bad-soft); color: var(--bad); }
       .empty { color: var(--muted); font-style: italic; }
+      .rule { padding: 18px; font-size: 1.05rem; }
+      .rule strong { color: var(--accent); }
+      .checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .check-card { display: flex; min-height: 112px; padding: 16px; flex-direction: column; align-items: flex-start; text-align: left; }
+      .check-card strong { display: block; margin-bottom: 6px; font-size: 0.98rem; }
+      .check-card span { color: var(--muted); font-size: 0.84rem; font-weight: 450; }
+      .check-card[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+      .result-copy { margin: 12px 0 0; padding-left: 20px; color: var(--muted); }
+      details.technical { margin-top: 32px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+      details.technical > summary { padding: 16px 18px; cursor: pointer; font-weight: 800; }
+      .technical-body { padding: 0 18px 18px; }
+      .technical-note { max-width: 760px; color: var(--muted); }
       @media (max-width: 900px) {
-        .flow { grid-template-columns: 1fr; }
-        .flow li { min-height: auto; }
-        .flow li:not(:last-child)::after { top: auto; right: 50%; bottom: -24px; content: "↓"; }
-        .state-grid, .button-groups, .tables { grid-template-columns: 1fr; }
+        .state-grid, .button-groups, .tables, .checks { grid-template-columns: 1fr; }
         .gates { grid-column: auto; }
       }
       @media (max-width: 580px) {
@@ -133,8 +115,6 @@
         .state-grid { grid-template-columns: 1fr; }
         .gates { grid-column: auto; }
         .gate-list { grid-template-columns: 1fr 1fr; }
-        .step { grid-template-columns: 28px 1fr; }
-        .step small { grid-column: 2; }
         .audit li { grid-template-columns: 44px 1fr; }
         .audit li span:last-child { grid-column: 2; }
       }
@@ -142,67 +122,56 @@
   </head>
   <body>
     <main>
-      <p class="eyebrow">Fix This · state-model review</p>
-      <h1>Can one small durable model keep SMS, the repair agent, and manager approval in order?</h1>
+      <p class="eyebrow">Fix This · repair-agent check</p>
+      <h1>What happens after the tenant sends a text?</h1>
       <p class="intro">
-        This prototype tests whether a per-case event inbox, one serialized agent run, optimistic case revision,
-        and a deterministic effect journal are enough for duplicate webhooks, overlapping replies, failures,
-        restarts, human approval, and retry-safe real-world effects.
+        Fix This saves the text in the repair case. The text wakes the repair agent. The repair agent can ask the
+        tenant for information and prepare a contractor proposal. It must stop for approval from the property manager.
+        It can book only after the tenant gives access authorization, the property manager gives approval, and the contractor confirms the visit.
       </p>
-      <span class="prototype-note">Throwaway prototype — no provider calls, credentials, persistence, or production code</span>
+      <p class="intro">
+        This page checks one safety rule: the same work must not happen twice when a text provider retries a message,
+        the tenant sends more information, the repair agent fails, or the server stops.
+      </p>
+      <span class="prototype-note">Test data only — this page sends no real text and makes no real call</span>
 
       <section>
-        <h2>Proposed event and state boundary</h2>
-        <div class="panel diagram">
-          <ol class="flow" aria-label="Event-driven repair flow">
-            <li><strong>1. Verify and append</strong><span>Provider signature, account, destination, role binding, and provider ID are checked before one event is stored.</span></li>
-            <li><strong>2. Acknowledge</strong><span>The webhook returns immediately. Duplicate provider IDs point at the event already stored.</span></li>
-            <li><strong>3. Run one case</strong><span>A worker claims a high-water mark. New events wait; only one model run exists for the repair.</span></li>
-            <li><strong>4. Commit by revision</strong><span>Model tools and human commands bind exact case facts. A stale model write is rejected and rerun.</span></li>
-            <li><strong>5. Dispatch effects</strong><span>SMS, calls, and booking notifications use deterministic keys and a persisted delivery state.</span></li>
-          </ol>
-          <div class="phase-flow" aria-label="Business phases">
-            <b>New evidence</b><span>→</span><b>Waiting for tenant</b><span>or</span><b>Waiting for manager</b><span>→</span><b>Waiting for contractor</b><span>→</span><b>Booked</b>
-          </div>
-          <p class="control-plane"><strong>One shared control plane:</strong> the dashboard and WebMCP read the same revisioned case aggregate. WebMCP can inspect evidence and prepare work; only the dashboard can append the human approval event. Background changes appear in that same record.</p>
-        </div>
+        <h2>The rule</h2>
+        <div class="panel rule"><strong>One saved message wakes one repair-agent run.</strong> Before Fix This sends a text or makes a call, it saves one record for that action. If it does not know whether the provider completed the action, it checks the provider before it tries again.</div>
+      </section>
+
+      <section>
+        <h2>Choose a check</h2>
+        <p class="intro">These are code checks, not a product demo. Each button starts with a clean test repair case and runs one failure or booking path.</p>
+        <div id="checks" class="checks"></div>
       </section>
 
       <section aria-labelledby="current-state-heading">
-        <h2 id="current-state-heading">Current durable state</h2>
+        <h2 id="current-state-heading">Result</h2>
         <div id="outcome" class="outcome" role="status"></div>
+        <ul id="result-copy" class="result-copy"></ul>
         <div id="state" class="state-grid"></div>
       </section>
 
-      <section>
-        <h2>Free play</h2>
-        <div class="panel controls">
-          <div id="free-play" class="button-groups"></div>
+      <details class="technical">
+        <summary>Show the technical record and manual controls</summary>
+        <div class="technical-body">
+          <p class="technical-note">Use these controls only if you want to change one technical event at a time. A check above always starts with a clean repair case.</p>
+          <section>
+            <h2>Manual controls</h2>
+            <div class="panel controls"><div id="free-play" class="button-groups"></div></div>
+          </section>
+          <section class="tables">
+            <div class="panel table-panel"><h2>Saved events</h2><div id="events"></div></div>
+            <div class="panel table-panel"><h2>Texts and calls</h2><div id="effects"></div></div>
+          </section>
+          <section class="panel audit">
+            <h2>What happened</h2>
+            <ol id="audit"></ol>
+            <div id="invariants" class="invariants"></div>
+          </section>
         </div>
-      </section>
-
-      <section>
-        <h2>Guided edge cases</h2>
-        <div id="tabs" class="tabs" role="tablist" aria-label="Guided walkthroughs"></div>
-        <div id="walkthrough" class="panel walkthrough" role="tabpanel"></div>
-      </section>
-
-      <section class="tables">
-        <div class="panel table-panel">
-          <h2>Inbox events</h2>
-          <div id="events"></div>
-        </div>
-        <div class="panel table-panel">
-          <h2>Effect journal</h2>
-          <div id="effects"></div>
-        </div>
-      </section>
-
-      <section class="panel audit">
-        <h2>Audit trail</h2>
-        <ol id="audit"></ol>
-        <div id="invariants" class="invariants"></div>
-      </section>
+      </details>
     </main>
 
     <script>
@@ -233,7 +202,7 @@
           contractorConfirmation: null,
           appointment: null,
           audit: [],
-          lastOutcome: "Choose a walkthrough or press any free-play action.",
+          lastOutcome: "Choose a check. Each check starts with a clean repair case.",
           outcomeKind: "ok",
         });
 
@@ -252,7 +221,7 @@
         const appendEvent = (state, input) => {
           const duplicate = state.events.find((event) => event.sourceKey === input.sourceKey);
           if (duplicate) {
-            note(state, "deduped", `Duplicate ${input.sourceKey} acknowledged; ${duplicate.id} remains the only stored wake event.`);
+            note(state, "deduped", "Fix This already saved this provider message. It did not save it again.");
             return null;
           }
           const event = {
@@ -263,14 +232,14 @@
           };
           state.events.push(event);
           state.caseRevision += 1;
-          note(state, "event", `${event.id} appended from ${event.sourceKey}; webhook work is now complete.`);
+          note(state, "event", "Fix This saved the new message or decision. The provider request can now end.");
           return event;
         };
 
         const startRun = (state) => {
-          if (state.activeRun) return reject(state, `${state.activeRun.id} already owns this repair.`);
+          if (state.activeRun) return reject(state, "The repair agent is already working on this repair case.");
           const pending = state.events.filter((event) => event.status === "pending");
-          if (!pending.length) return reject(state, "No pending event can wake the repair agent.");
+          if (!pending.length) return reject(state, "There is no new work for the repair agent.");
           const highWater = Math.max(...pending.map((event) => event.seq));
           pending.filter((event) => event.seq <= highWater).forEach((event) => { event.status = "claimed"; });
           state.activeRun = {
@@ -279,13 +248,13 @@
             highWater,
             processGeneration: state.processGeneration,
           };
-          note(state, "run", `${state.activeRun.id} started at case revision ${state.caseRevision}, through event ${highWater}.`);
+          note(state, "run", "The repair agent started. It will use all information that Fix This saved before this point.");
           return state;
         };
 
         const endRun = (state, status, text, handled) => {
           const run = state.activeRun;
-          if (!run) return reject(state, "There is no active repair-agent run.");
+          if (!run) return reject(state, "The repair agent is not working now.");
           state.events
             .filter((event) => event.status === "claimed" && event.seq <= run.highWater)
             .forEach((event) => { event.status = handled ? "handled" : "pending"; });
@@ -298,15 +267,14 @@
 
         const freshRun = (state) => {
           if (!state.activeRun) {
-            reject(state, "Start the repair agent before asking it to change case state.");
+            reject(state, "Start the repair agent before it changes the repair case.");
             return false;
           }
           if (state.activeRun.snapshotRevision !== state.caseRevision) {
-            const { id, snapshotRevision } = state.activeRun;
             endRun(
               state,
               "superseded",
-              `${id} tried to commit revision ${snapshotRevision}, but the case is now revision ${state.caseRevision}. Its events were requeued for a fresh run.`,
+              "New information arrived after the repair agent started. Fix This did not save the old work. The repair agent must start again with the new information.",
               false,
             );
             return false;
@@ -369,13 +337,13 @@
             case "START_RUN":
               return startRun(state);
             case "MODEL_FAIL":
-              if (!state.activeRun) return reject(state, "There is no active model run to fail.");
-              return endRun(state, "failed", `${state.activeRun.id} failed before committing a case change or effect. Its events are safe to retry.`, false);
+              if (!state.activeRun) return reject(state, "The repair agent is not working now.");
+              return endRun(state, "failed", "The repair agent stopped before it changed the repair case. The saved work is still waiting.", false);
             case "AGENT_ASK_TENANT": {
               if (!freshRun(state)) return state;
               const through = state.activeRun.highWater;
-              const effect = planEffect(state, `sms:tenant:follow-up:through-${through}`, "sms", "Safety and access follow-up");
-              return finishAgentCommit(state, "waiting_for_tenant", `${state.activeRun.id} committed ${effect.id} once and paused for the tenant.`);
+              planEffect(state, `sms:tenant:follow-up:through-${through}`, "sms", "Safety and access follow-up");
+              return finishAgentCommit(state, "waiting_for_tenant", "The repair agent prepared one tenant text. It stopped to wait for the tenant.");
             }
             case "AGENT_PREPARE_PROPOSAL":
               if (!freshRun(state)) return state;
@@ -388,10 +356,10 @@
               state.approval = null;
               state.contractorConfirmation = null;
               state.appointment = null;
-              return finishAgentCommit(state, "waiting_for_manager", `${state.activeRun.id} bound tenant access to the exact proposal and paused. Only the dashboard can approve it.`);
+              return finishAgentCommit(state, "waiting_for_manager", "The repair agent prepared one contractor proposal. It stopped for approval from the property manager.");
             case "MANAGER_APPROVE": {
-              if (!state.proposal || !state.tenantAccess) return reject(state, "There is no exact proposal and tenant-access fact for the manager to approve.");
-              if (state.approval) return reject(state, "This exact proposal already has manager approval.");
+              if (!state.proposal || !state.tenantAccess) return reject(state, "The property manager needs a contractor proposal and access authorization before approval.");
+              if (state.approval) return reject(state, "The property manager already approved this contractor proposal.");
               const event = appendEvent(state, {
                 sourceKey: `manager:approval:${state.proposal.id}`,
                 type: "manager.proposal.approved",
@@ -406,19 +374,19 @@
                 callLimit: 1,
               };
               state.phase = "ready_for_contractor_call";
-              note(state, "human", "Manager approval was stored as a new event. Any run on the previous revision is now stale.");
+              note(state, "human", "The property manager approved this contractor proposal. The approval also permits one contractor call.");
               return state;
             }
             case "AGENT_PLAN_CALL": {
               if (!freshRun(state)) return state;
-              if (!state.approval || state.approval.proposalId !== state.proposal?.id) return reject(state, "The current proposal lacks matching human approval.");
-              const effect = planEffect(state, `call:contractor:${state.approval.id}`, "call", "One disclosed, DTMF-consented contractor call");
-              return finishAgentCommit(state, "waiting_for_contractor", `${state.activeRun.id} committed ${effect.id}; the call authority cannot be spent twice.`);
+              if (!state.approval || state.approval.proposalId !== state.proposal?.id) return reject(state, "The property manager did not approve this contractor proposal.");
+              planEffect(state, `call:contractor:${state.approval.id}`, "call", "One disclosed contractor call with keypad consent");
+              return finishAgentCommit(state, "waiting_for_contractor", "The repair agent prepared one approved contractor call. It cannot use this approval for a second call.");
             }
             case "VOICE_CONFIRM": {
-              if (!state.approval) return reject(state, "Contractor confirmation cannot exist before the exact call approval.");
+              if (!state.approval) return reject(state, "Fix This cannot accept contractor confirmation before call approval.");
               const call = state.effects.find((effect) => effect.type === "call" && effect.status === "succeeded");
-              if (!call) return reject(state, "No accepted approved call exists for this confirmation callback.");
+              if (!call) return reject(state, "There is no approved contractor call for this confirmation.");
               appendEvent(state, {
                 sourceKey: "voice:CALL-A:confirmed",
                 type: "contractor.voice.confirmed",
@@ -430,7 +398,7 @@
               if (!freshRun(state)) return state;
               const confirmationEvent = state.events.find((event) => event.type === "contractor.voice.confirmed" && event.status === "claimed");
               const gatesMatch = state.proposal && state.approval?.proposalId === state.proposal.id && state.tenantAccess?.proposalId === state.proposal.id;
-              if (!confirmationEvent || !gatesMatch) return reject(state, "Booking still needs matching manager approval, tenant access, and claimed contractor confirmation.");
+              if (!confirmationEvent || !gatesMatch) return reject(state, "Fix This needs approval, access authorization, and contractor confirmation before it can book.");
               state.contractorConfirmation = {
                 sourceKey: confirmationEvent.sourceKey,
                 proposalId: state.proposal.id,
@@ -438,14 +406,14 @@
               };
               state.appointment = { id: `appointment:${state.proposal.id}`, proposalId: state.proposal.id };
               planEffect(state, `sms:tenant:booking:${state.proposal.id}`, "sms", "Booked-visit confirmation");
-              return finishAgentCommit(state, "booked", `${state.activeRun.id} booked once and journaled one tenant confirmation text.`);
+              return finishAgentCommit(state, "booked", "Fix This created one appointment and prepared one confirmation text for the tenant.");
             }
             case "DISPATCH_EFFECT": {
               const effect = state.effects.find((item) => item.status === "planned" || item.status === "retryable");
-              if (!effect) return reject(state, "No safely dispatchable effect exists. Unknown outcomes must be reconciled first.");
+              if (!effect) return reject(state, "There is no text or call that Fix This can send now. Check an unknown provider result before you try again.");
               effect.status = "dispatching";
               effect.attempts += 1;
-              note(state, "effect", `${effect.id} is dispatching with the same deterministic key (${effect.effectKey}).`);
+              note(state, "effect", `Fix This started this action: ${effect.purpose}. It uses the existing send record.`);
               return state;
             }
             case "PROVIDER_ACCEPTED": {
@@ -453,14 +421,14 @@
               if (!effect) return reject(state, "No effect is currently awaiting a provider outcome.");
               effect.status = "succeeded";
               effect.providerId = `provider:${effect.id}`;
-              note(state, "effect", `${effect.id} was accepted and linked to ${effect.providerId}.`);
+              note(state, "effect", `The provider accepted this action: ${effect.purpose}.`);
               return state;
             }
             case "PROVIDER_REJECTED": {
               const effect = findDispatching(state);
               if (!effect) return reject(state, "No effect is currently awaiting a provider outcome.");
               effect.status = "retryable";
-              note(state, "effect", `${effect.id} definitely failed before provider acceptance, so retry is safe.`);
+              note(state, "effect", "The provider rejected the action before it sent anything. Fix This can retry the same send record.");
               return state;
             }
             case "PROCESS_RESTART": {
@@ -470,22 +438,22 @@
               }
               state.effects.filter((effect) => effect.status === "dispatching").forEach((effect) => { effect.status = "unknown"; });
               state.processGeneration += 1;
-              note(state, "restart", "Process restarted from durable state. In-flight provider outcomes are unknown and will not auto-retry.");
+              note(state, "restart", "The server started again. Saved repair work remains. Fix This must check any send that was in progress.");
               return state;
             }
             case "RECONCILE_SENT": {
               const effect = findUnknown(state);
-              if (!effect) return reject(state, "No unknown provider outcome needs reconciliation.");
+              if (!effect) return reject(state, "There is no send with an unknown provider result.");
               effect.status = "succeeded";
               effect.providerId = `provider:reconciled:${effect.id}`;
-              note(state, "effect", `${effect.id} was found at the provider and marked succeeded; no duplicate was sent.`);
+              note(state, "effect", "The provider confirms that it sent the action. Fix This does not send it again.");
               return state;
             }
             case "RECONCILE_NOT_SENT": {
               const effect = findUnknown(state);
-              if (!effect) return reject(state, "No unknown provider outcome needs reconciliation.");
+              if (!effect) return reject(state, "There is no send with an unknown provider result.");
               effect.status = "retryable";
-              note(state, "effect", `${effect.id} was confirmed absent at the provider and is now safe to retry.`);
+              note(state, "effect", "The provider confirms that it did not send the action. Fix This can retry the same send record.");
               return state;
             }
             default:
@@ -496,35 +464,25 @@
         const validate = (state) => {
           const problems = [];
           const unique = (items) => new Set(items).size === items.length;
-          if (!unique(state.events.map((event) => event.sourceKey))) problems.push("duplicate provider event stored");
-          if (!unique(state.effects.map((effect) => effect.effectKey))) problems.push("duplicate effect key stored");
+          if (!unique(state.events.map((event) => event.sourceKey))) problems.push("Fix This saved the same provider message twice");
+          if (!unique(state.effects.map((effect) => effect.effectKey))) problems.push("Fix This created two send records for the same action");
           if (state.appointment) {
             const id = state.proposal?.id;
             if (!id || state.approval?.proposalId !== id || state.tenantAccess?.proposalId !== id || state.contractorConfirmation?.proposalId !== id) {
-              problems.push("appointment exists without three matching gates");
+              problems.push("Fix This created an appointment before all required booking facts existed");
             }
           }
-          if (state.effects.some((effect) => effect.status === "unknown" && effect.providerId)) problems.push("unknown effect already has a provider result");
+          if (state.effects.some((effect) => effect.status === "unknown" && effect.providerId)) problems.push("A provider result is both unknown and recorded");
           return problems;
         };
 
-        const apply = (state, ...actions) => actions.reduce(reduce, state);
-        const scenarioState = (name) => {
-          if (name === "approval") {
-            return apply(initialState(), { type: "SMS_A" }, { type: "START_RUN" }, { type: "AGENT_PREPARE_PROPOSAL" }, { type: "SMS_B" }, { type: "START_RUN" });
-          }
-          if (name === "restart") {
-            return apply(initialState(), { type: "SMS_A" }, { type: "START_RUN" }, { type: "AGENT_ASK_TENANT" }, { type: "DISPATCH_EFFECT" });
-          }
-          return initialState();
-        };
-
-        return { initialState, reduce, validate, scenarioState };
+        return { initialState, reduce, validate };
       })();
     </script>
 
     <script>
       const actions = {
+        RESET: { type: "RESET" },
         SMS_A: { type: "SMS_A" },
         SMS_A_DUPLICATE: { type: "SMS_A_DUPLICATE" },
         SMS_B: { type: "SMS_B" },
@@ -545,173 +503,175 @@
       };
 
       const freePlay = [
-        { name: "Inbound and human", items: [
-          ["Receive tenant SMS A", "SMS_A"],
-          ["Receive duplicate SMS A", "SMS_A_DUPLICATE"],
-          ["Receive overlapping SMS B", "SMS_B"],
-          ["Manager approves exact proposal", "MANAGER_APPROVE"],
-          ["Receive consented contractor confirmation", "VOICE_CONFIRM"],
+        { name: "Messages and decisions", items: [
+          ["Start with a clean repair case", "RESET"],
+          ["Save tenant text A", "SMS_A"],
+          ["Try the same provider message again", "SMS_A_DUPLICATE"],
+          ["Save a second tenant text", "SMS_B"],
+          ["Save approval from the property manager", "MANAGER_APPROVE"],
+          ["Save contractor confirmation", "VOICE_CONFIRM"],
         ] },
         { name: "Repair agent", items: [
-          ["Start next serialized run", "START_RUN"],
-          ["Ask tenant and pause", "AGENT_ASK_TENANT"],
-          ["Prepare proposal and pause", "AGENT_PREPARE_PROPOSAL"],
-          ["Plan approved contractor call", "AGENT_PLAN_CALL"],
-          ["Record confirmation and book", "AGENT_BOOK"],
-          ["Model fails before commit", "MODEL_FAIL"],
+          ["Start the repair agent", "START_RUN"],
+          ["Prepare a tenant question", "AGENT_ASK_TENANT"],
+          ["Prepare a contractor proposal", "AGENT_PREPARE_PROPOSAL"],
+          ["Prepare the approved contractor call", "AGENT_PLAN_CALL"],
+          ["Create the appointment", "AGENT_BOOK"],
+          ["Stop the repair agent before it saves", "MODEL_FAIL"],
         ] },
-        { name: "Effect delivery", items: [
-          ["Dispatch next safe effect", "DISPATCH_EFFECT"],
-          ["Provider accepts", "PROVIDER_ACCEPTED"],
-          ["Provider rejects before accepting", "PROVIDER_REJECTED"],
-          ["Restart process", "PROCESS_RESTART"],
-          ["Reconcile: provider sent it", "RECONCILE_SENT"],
-          ["Reconcile: provider did not send", "RECONCILE_NOT_SENT"],
+        { name: "Provider and server", items: [
+          ["Start the next text or call", "DISPATCH_EFFECT"],
+          ["Provider accepted it", "PROVIDER_ACCEPTED"],
+          ["Provider rejected it before send", "PROVIDER_REJECTED"],
+          ["Start the server again", "PROCESS_RESTART"],
+          ["Provider says it was sent", "RECONCILE_SENT"],
+          ["Provider says it was not sent", "RECONCILE_NOT_SENT"],
         ] },
       ];
 
       const scenarios = [
         {
-          id: "happy",
-          label: "Manager pause + booking",
-          setup: "empty",
-          description: "A tenant message creates one wake. The agent binds access, pauses for a human, spends one call approval, records consented contractor confirmation, books, and journals one tenant text.",
-          steps: [
-            ["Receive tenant SMS", "SMS_A", "One verified provider event is durable before acknowledgement."],
-            ["Start the repair agent", "START_RUN", "The run claims a fixed high-water mark."],
-            ["Prepare proposal and pause", "AGENT_PREPARE_PROPOSAL", "Tenant access is bound to the exact proposal; no approval is invented."],
-            ["Manager approves", "MANAGER_APPROVE", "The dashboard adds a human event with exact price, timing, and one-call authority."],
-            ["Resume on approval", "START_RUN", "The approval event wakes a fresh run."],
-            ["Journal the contractor call", "AGENT_PLAN_CALL", "The deterministic key can spend this approval once."],
-            ["Dispatch the call", "DISPATCH_EFFECT", "Delivery starts outside the model transaction."],
-            ["Provider accepts the call", "PROVIDER_ACCEPTED", "The provider result is linked to the effect."],
-            ["Receive contractor confirmation", "VOICE_CONFIRM", "The signed post-consent callback becomes another event."],
-            ["Start the confirmation run", "START_RUN", "The worker sees the exact confirmation event."],
-            ["Book and journal tenant text", "AGENT_BOOK", "All three matching gates exist before one appointment is recorded."],
-            ["Dispatch the booking text", "DISPATCH_EFFECT", "The message uses the proposal-scoped key."],
-            ["Provider accepts the text", "PROVIDER_ACCEPTED", "The journey ends with one recorded delivery."],
+          id: "normal",
+          label: "Normal repair",
+          question: "Can Fix This stop for approval and book once?",
+          sequence: ["SMS_A", "START_RUN", "AGENT_PREPARE_PROPOSAL", "MANAGER_APPROVE", "START_RUN", "AGENT_PLAN_CALL", "DISPATCH_EFFECT", "PROVIDER_ACCEPTED", "VOICE_CONFIRM", "START_RUN", "AGENT_BOOK", "DISPATCH_EFFECT", "PROVIDER_ACCEPTED"],
+          pass: (value) => value.phase === "booked" && value.effects.length === 2 && value.effects.every((effect) => effect.status === "succeeded"),
+          result: [
+            "The property manager approved the contractor proposal before the call.",
+            "Access authorization and contractor confirmation match the proposal.",
+            "Fix This created one appointment and sent one booking text to the tenant.",
           ],
         },
         {
           id: "duplicate",
-          label: "Duplicate webhook",
-          setup: "empty",
-          description: "Twilio retries the same MessageSid. The duplicate request is acknowledged but cannot create a second event, run cause, or outbound text.",
-          steps: [
-            ["Receive SMS A", "SMS_A", "The provider ID becomes the dedupe key."],
-            ["Receive the same SMS again", "SMS_A_DUPLICATE", "The inbox still contains one event."],
-            ["Start one run", "START_RUN", "Only the stored event is claimed."],
-            ["Ask the tenant", "AGENT_ASK_TENANT", "Only one deterministic follow-up effect is planned."],
+          label: "Same text arrives twice",
+          question: "Does one retry from the text provider create the work twice?",
+          sequence: ["SMS_A", "SMS_A_DUPLICATE", "START_RUN", "AGENT_ASK_TENANT"],
+          pass: (value) => value.events.length === 1 && value.effects.length === 1,
+          result: [
+            "Fix This saved one tenant message.",
+            "The provider retry did not create a second agent wake event.",
+            "The repair agent prepared one tenant text.",
           ],
         },
         {
           id: "overlap",
-          label: "Overlapping replies",
-          setup: "empty",
-          description: "A second tenant reply lands while the model is working. It is appended immediately, the old model snapshot cannot commit, and one fresh run sees both messages.",
-          steps: [
-            ["Receive SMS A", "SMS_A", "The first reply is pending."],
-            ["Start a run", "START_RUN", "The model reads revision 1."],
-            ["Receive SMS B during the run", "SMS_B", "The case advances to revision 2 without starting another model."],
-            ["Try the stale model write", "AGENT_PREPARE_PROPOSAL", "The write is rejected and the first event returns to pending."],
-            ["Start a fresh run", "START_RUN", "One run now claims both pending events."],
-            ["Commit from the fresh snapshot", "AGENT_PREPARE_PROPOSAL", "The proposal is based on the complete evidence set."],
+          label: "Tenant replies during work",
+          question: "Does the repair agent miss the second text?",
+          sequence: ["SMS_A", "START_RUN", "SMS_B", "AGENT_PREPARE_PROPOSAL", "START_RUN", "AGENT_PREPARE_PROPOSAL"],
+          pass: (value) => value.events.length === 2 && Boolean(value.proposal) && value.runs.some((run) => run.status === "superseded"),
+          result: [
+            "Fix This saved both tenant messages.",
+            "It did not save work that used only the first message.",
+            "The next repair-agent run used both messages.",
           ],
         },
         {
           id: "failure",
-          label: "Model + safe retry",
-          setup: "empty",
-          description: "The model fails before committing, then a provider definitely rejects a later effect before accepting it. Both retries reuse durable causes and one effect key.",
-          steps: [
-            ["Receive SMS A", "SMS_A", "The wake event is durable."],
-            ["Start the model", "START_RUN", "The event is claimed, not deleted."],
-            ["Fail before commit", "MODEL_FAIL", "The event returns to pending and no effect exists."],
-            ["Retry the model", "START_RUN", "A new run claims the same event."],
-            ["Plan one tenant follow-up", "AGENT_ASK_TENANT", "The effect key derives from the claimed event range."],
-            ["Dispatch", "DISPATCH_EFFECT", "Attempt one begins."],
-            ["Provider rejects before accepting", "PROVIDER_REJECTED", "This known failure is retryable."],
-            ["Retry with the same key", "DISPATCH_EFFECT", "Attempt two does not create another effect record."],
-            ["Provider accepts", "PROVIDER_ACCEPTED", "One provider result closes the effect."],
+          label: "Repair agent stops",
+          question: "Can the repair agent try again without sending twice?",
+          sequence: ["SMS_A", "START_RUN", "MODEL_FAIL", "START_RUN", "AGENT_ASK_TENANT", "DISPATCH_EFFECT", "PROVIDER_REJECTED", "DISPATCH_EFFECT", "PROVIDER_ACCEPTED"],
+          pass: (value) => value.runs.some((run) => run.status === "failed") && value.effects.length === 1 && value.effects[0]?.attempts === 2 && value.effects[0]?.status === "succeeded",
+          result: [
+            "The failed run did not remove the saved tenant message.",
+            "The provider rejected the first send before delivery.",
+            "Fix This retried the same send record. It did not create a second record.",
           ],
         },
         {
           id: "restart-sent",
-          label: "Restart: already sent",
-          setup: "restart",
-          description: "The process dies after dispatch but before recording the provider response. The outcome becomes unknown, so the worker reconciles and refuses an automatic resend.",
-          steps: [
-            ["Restart during dispatch", "PROCESS_RESTART", "The persisted effect becomes unknown, not retryable."],
-            ["Find the message at the provider", "RECONCILE_SENT", "The original effect is marked succeeded."],
-            ["Try to dispatch again", "DISPATCH_EFFECT", "There is no safe effect to send, so no duplicate occurs."],
+          label: "Server stops after send",
+          question: "What if the provider sent the text but Fix This did not save the result?",
+          sequence: ["SMS_A", "START_RUN", "AGENT_ASK_TENANT", "DISPATCH_EFFECT", "PROCESS_RESTART", "RECONCILE_SENT", "DISPATCH_EFFECT"],
+          pass: (value) => value.effects.length === 1 && value.effects[0]?.attempts === 1 && value.effects[0]?.status === "succeeded",
+          result: [
+            "After restart, Fix This marked the send result as unknown.",
+            "It checked the provider before it tried again.",
+            "The provider confirmed the text. Fix This did not send a duplicate.",
           ],
         },
         {
           id: "restart-missing",
-          label: "Restart: not sent",
-          setup: "restart",
-          description: "The same crash is reconciled differently when the provider confirms it never accepted the request. Only then does the original effect become retryable.",
-          steps: [
-            ["Restart during dispatch", "PROCESS_RESTART", "Unknown is a deliberate stop state."],
-            ["Confirm it is absent", "RECONCILE_NOT_SENT", "The existing effect becomes retryable."],
-            ["Retry with the same key", "DISPATCH_EFFECT", "No second effect record is created."],
-            ["Provider accepts", "PROVIDER_ACCEPTED", "The reconciled retry succeeds."],
+          label: "Server stops before send",
+          question: "Can Fix This retry after the provider confirms that nothing was sent?",
+          sequence: ["SMS_A", "START_RUN", "AGENT_ASK_TENANT", "DISPATCH_EFFECT", "PROCESS_RESTART", "RECONCILE_NOT_SENT", "DISPATCH_EFFECT", "PROVIDER_ACCEPTED"],
+          pass: (value) => value.effects.length === 1 && value.effects[0]?.attempts === 2 && value.effects[0]?.status === "succeeded",
+          result: [
+            "Fix This checked the provider before it retried.",
+            "The provider confirmed that it did not send the text.",
+            "Fix This retried the same send record and sent one text.",
           ],
         },
         {
           id: "approval",
-          label: "Approval during a run",
-          setup: "approval",
-          description: "A proposal is already visible, and a tenant clarification has started another run. Human approval remains valid for that exact proposal, but it makes the model snapshot stale.",
-          steps: [
-            ["Manager approves exact proposal", "MANAGER_APPROVE", "The human command commits immediately and wakes future work."],
-            ["Try the old model action", "AGENT_PLAN_CALL", "The run cannot act from the pre-approval revision."],
-            ["Start the fresh run", "START_RUN", "Both the clarification and approval are now in its high-water mark."],
-            ["Plan the approved call", "AGENT_PLAN_CALL", "The fresh run sees and spends the exact human authority."],
+          label: "Approval arrives during work",
+          question: "Can old repair-agent work overwrite the approval?",
+          sequence: ["SMS_A", "START_RUN", "AGENT_PREPARE_PROPOSAL", "SMS_B", "START_RUN", "MANAGER_APPROVE", "AGENT_PLAN_CALL", "START_RUN", "AGENT_PLAN_CALL"],
+          pass: (value) => Boolean(value.approval) && value.effects.length === 1 && value.runs.some((run) => run.status === "superseded"),
+          result: [
+            "Fix This saved the approval from the property manager.",
+            "It did not save older repair-agent work over that decision.",
+            "A new repair-agent run used the approval and prepared one contractor call.",
           ],
         },
       ];
 
-      let activeScenario = scenarios[0];
-      let stepIndex = 0;
-      let state = RepairFlow.scenarioState(activeScenario.setup);
+      let activeScenario = null;
+      let state = RepairFlow.initialState();
 
       const escapeHtml = (value) => String(value).replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]);
-      const yes = (value) => `<span class="gate ${value ? "yes" : ""}">${value ? "✓" : "—"}</span>`;
-      const phaseLabel = (value) => value.replaceAll("_", " ");
+      const gate = (value, label) => `<div class="gate ${value ? "yes" : ""}">${value ? "✓" : "—"}<br>${escapeHtml(label)}</div>`;
+      const phaseLabels = {
+        new: "New repair",
+        waiting_for_tenant: "Waiting for tenant",
+        waiting_for_manager: "Waiting for property manager",
+        ready_for_contractor_call: "Approval received",
+        waiting_for_contractor: "Waiting for contractor",
+        booked: "Appointment booked",
+      };
+      const runLabels = { completed: "Completed", failed: "Failed safely", superseded: "Started again with new information", interrupted: "Stopped by server restart" };
+      const eventLabels = { pending: "Waiting for repair agent", claimed: "Repair agent is using it", handled: "Processed" };
+      const effectLabels = { planned: "Ready to send", dispatching: "Sending", succeeded: "Provider accepted", retryable: "Ready to retry", unknown: "Must check provider" };
 
       const dispatch = (actionName) => {
+        activeScenario = null;
         state = RepairFlow.reduce(state, actions[actionName]);
         render();
       };
 
-      const selectScenario = (scenario) => {
+      const runScenario = (scenario) => {
         activeScenario = scenario;
-        stepIndex = 0;
-        state = RepairFlow.scenarioState(scenario.setup);
-        state.lastOutcome = `Walkthrough loaded: ${scenario.label}.`;
+        state = scenario.sequence.reduce((value, actionName) => RepairFlow.reduce(value, actions[actionName]), RepairFlow.initialState());
+        const passed = scenario.pass(state) && RepairFlow.validate(state).length === 0;
+        state.lastOutcome = passed ? `Check passed: ${scenario.label}.` : `Check failed: ${scenario.label}.`;
+        state.outcomeKind = passed ? "ok" : "bad";
         render();
-      };
-
-      const runStep = (actionName) => {
-        dispatch(actionName);
-        stepIndex += 1;
-        render();
+        document.querySelector("#current-state-heading").scrollIntoView?.({ block: "start" });
       };
 
       const renderState = () => {
-        const pending = state.events.filter((event) => event.status === "pending").length;
+        const waiting = state.events.filter((event) => event.status !== "handled").length;
+        const tenantMessages = state.events.filter((event) => event.type === "tenant.sms.received").length;
+        const sent = state.effects.filter((effect) => effect.status === "succeeded").length;
+        const mustCheck = state.effects.filter((effect) => effect.status === "unknown").length;
         const run = state.activeRun;
+        const lastRun = state.runs.at(-1);
         document.querySelector("#outcome").className = `outcome ${state.outcomeKind === "ok" ? "" : state.outcomeKind}`;
         document.querySelector("#outcome").textContent = state.lastOutcome;
+        document.querySelector("#result-copy").innerHTML = (activeScenario?.result ?? ["Choose one check above. Fix This will run it with test data and show the final repair case."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
         document.querySelector("#state").innerHTML = `
-          <article class="panel state-card"><h3>Repair phase</h3><span class="value">${escapeHtml(phaseLabel(state.phase))}</span><dl><dt>Case revision</dt><dd>${state.caseRevision}</dd><dt>Processed through</dt><dd>event ${state.processedThrough || "—"}</dd></dl></article>
-          <article class="panel state-card"><h3>Serialized worker</h3><span class="value">${run ? escapeHtml(run.id) : "idle"}</span><dl><dt>Snapshot</dt><dd>${run ? `revision ${run.snapshotRevision}` : "—"}</dd><dt>High-water mark</dt><dd>${run ? `event ${run.highWater}` : "—"}</dd></dl></article>
-          <article class="panel state-card"><h3>Durable queue</h3><span class="value">${pending} pending</span><dl><dt>Events</dt><dd>${state.events.length}</dd><dt>Completed runs</dt><dd>${state.runs.length}</dd></dl></article>
-          <article class="panel state-card"><h3>Process</h3><span class="value">generation ${state.processGeneration}</span><dl><dt>Planned / retryable</dt><dd>${state.effects.filter((effect) => effect.status === "planned" || effect.status === "retryable").length}</dd><dt>Unknown effects</dt><dd>${state.effects.filter((effect) => effect.status === "unknown").length}</dd></dl></article>
-          <article class="panel state-card gates"><h3>Booking facts bound to one proposal</h3><div class="gate-list"><div>Proposal${yes(state.proposal)}</div><div>Tenant access${yes(state.tenantAccess)}</div><div>Manager approval${yes(state.approval)}</div><div>Contractor confirmed${yes(state.contractorConfirmation)}</div><div>Appointment${yes(state.appointment)}</div></div></article>
-          <article class="panel state-card gates"><h3>Exact authority</h3><dl><dt>Proposal</dt><dd>${escapeHtml(state.proposal?.id ?? "—")}</dd><dt>Price</dt><dd>${escapeHtml(state.approval?.priceAuthority ?? "—")}</dd><dt>Window</dt><dd>${escapeHtml(state.approval?.window ?? "—")}</dd><dt>Call limit</dt><dd>${state.approval?.callLimit ?? "—"}</dd></dl></article>
+          <article class="panel state-card"><h3>Repair case</h3><span class="value">${escapeHtml(phaseLabels[state.phase] ?? state.phase)}</span><dl><dt>Tenant messages</dt><dd>${tenantMessages}</dd><dt>New work</dt><dd>${waiting}</dd></dl></article>
+          <article class="panel state-card"><h3>Repair agent</h3><span class="value">${run ? "Working" : "Stopped"}</span><dl><dt>Runs finished</dt><dd>${state.runs.length}</dd><dt>Last result</dt><dd>${escapeHtml(lastRun ? runLabels[lastRun.status] ?? lastRun.status : "—")}</dd></dl></article>
+          <article class="panel state-card"><h3>Texts and calls</h3><span class="value">${state.effects.length} recorded</span><dl><dt>Provider accepted</dt><dd>${sent}</dd><dt>Must check provider</dt><dd>${mustCheck}</dd></dl></article>
+          <article class="panel state-card"><h3>Appointment</h3><span class="value">${state.appointment ? "Booked once" : "Not booked"}</span><dl><dt>Contractor proposal</dt><dd>${state.proposal ? "Yes" : "No"}</dd><dt>Approval</dt><dd>${state.approval ? "Yes" : "No"}</dd></dl></article>
+          <article class="panel state-card gates"><h3>Required before booking</h3><div class="gate-list">${gate(state.proposal, "Contractor proposal")}${gate(state.tenantAccess, "Access authorization")}${gate(state.approval, "Approval")}${gate(state.contractorConfirmation, "Contractor confirmation")}${gate(state.appointment, "Appointment")}</div></article>
+          <article class="panel state-card gates"><h3>Dashboard and WebMCP</h3><p>The dashboard and WebMCP read the same repair case. WebMCP cannot add approval. Only the property manager can approve the contractor proposal.</p></article>
         `;
+      };
+
+      const renderChecks = () => {
+        document.querySelector("#checks").innerHTML = scenarios.map((scenario) => `<button type="button" class="check-card" aria-pressed="${scenario.id === activeScenario?.id}" data-check="${scenario.id}"><strong>${escapeHtml(scenario.label)}</strong><span>${escapeHtml(scenario.question)}</span></button>`).join("");
+        document.querySelectorAll("[data-check]").forEach((button) => button.addEventListener("click", () => runScenario(scenarios.find((scenario) => scenario.id === button.dataset.check))));
       };
 
       const renderFreePlay = () => {
@@ -721,39 +681,27 @@
         document.querySelectorAll("#free-play [data-action]").forEach((button) => button.addEventListener("click", () => dispatch(button.dataset.action)));
       };
 
-      const renderWalkthrough = () => {
-        document.querySelector("#tabs").innerHTML = scenarios.map((scenario) => `<button type="button" class="tab" role="tab" aria-selected="${scenario.id === activeScenario.id}" data-scenario="${scenario.id}">${escapeHtml(scenario.label)}</button>`).join("");
-        document.querySelectorAll("[data-scenario]").forEach((button) => button.addEventListener("click", () => selectScenario(scenarios.find((scenario) => scenario.id === button.dataset.scenario))));
-        document.querySelector("#walkthrough").innerHTML = `
-          <h3>${escapeHtml(activeScenario.label)}</h3>
-          <p class="walkthrough-copy">${escapeHtml(activeScenario.description)}</p>
-          <ol class="steps">${activeScenario.steps.map(([label, action, detail], index) => `
-            <li class="step ${index < stepIndex ? "done" : ""}"><span class="step-number">${index < stepIndex ? "✓" : index + 1}</span><button type="button" data-step="${index}" data-action="${action}" ${index === stepIndex ? "" : "disabled"}>${escapeHtml(label)}</button><small>${escapeHtml(detail)}</small></li>
-          `).join("")}</ol>
-        `;
-        const next = document.querySelector(`[data-step="${stepIndex}"]`);
-        if (next) next.addEventListener("click", () => runStep(next.dataset.action));
-      };
-
       const table = (headers, rows) => rows.length
         ? `<table><thead><tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`
         : `<p class="empty">None yet.</p>`;
 
       const renderDetails = () => {
-        document.querySelector("#events").innerHTML = table(["Seq", "Source", "Type", "Status"], state.events.map((event) => `<tr><td>${event.seq}</td><td><code>${escapeHtml(event.sourceKey)}</code></td><td>${escapeHtml(event.type)}</td><td><span class="status ${event.status}">${event.status}</span></td></tr>`));
-        document.querySelector("#effects").innerHTML = table(["Key", "Purpose", "Attempts", "Status"], state.effects.map((effect) => `<tr><td><code>${escapeHtml(effect.effectKey)}</code></td><td>${escapeHtml(effect.purpose)}</td><td>${effect.attempts}</td><td><span class="status ${effect.status}">${effect.status}</span></td></tr>`));
+        const eventTypes = { "tenant.sms.received": "Tenant text", "manager.proposal.approved": "Approval from property manager", "contractor.voice.confirmed": "Contractor confirmation" };
+        document.querySelector("#events").innerHTML = table(["Order", "Provider record", "Type", "Status"], state.events.map((event) => `<tr><td>${event.seq}</td><td><code>${escapeHtml(event.sourceKey)}</code></td><td>${escapeHtml(eventTypes[event.type] ?? event.type)}</td><td><span class="status ${event.status}">${escapeHtml(eventLabels[event.status] ?? event.status)}</span></td></tr>`));
+        document.querySelector("#effects").innerHTML = table(["Send record", "Purpose", "Tries", "Status"], state.effects.map((effect) => `<tr><td><code>${escapeHtml(effect.effectKey)}</code></td><td>${escapeHtml(effect.purpose)}</td><td>${effect.attempts}</td><td><span class="status ${effect.status}">${escapeHtml(effectLabels[effect.status] ?? effect.status)}</span></td></tr>`));
+        const kindLabels = { event: "Saved", deduped: "Duplicate", run: "Agent", human: "Manager", effect: "Provider", restart: "Server", rejected: "Stopped", failed: "Failed" };
         document.querySelector("#audit").innerHTML = state.audit.length
-          ? state.audit.slice().reverse().map((entry) => `<li><code>${entry.at}</code><span class="kind">${escapeHtml(entry.kind)}</span><span>${escapeHtml(entry.text)}</span></li>`).join("")
-          : `<li class="empty">No transitions yet.</li>`;
+          ? state.audit.slice().reverse().map((entry) => `<li><code>${entry.at}</code><span class="kind">${escapeHtml(kindLabels[entry.kind] ?? entry.kind)}</span><span>${escapeHtml(entry.text)}</span></li>`).join("")
+          : `<li class="empty">Nothing has happened yet.</li>`;
         const problems = RepairFlow.validate(state);
         const invariants = document.querySelector("#invariants");
         invariants.className = `invariants ${problems.length ? "bad" : ""}`;
-        invariants.textContent = problems.length ? `Invariant failed: ${problems.join("; ")}` : "All checked invariants hold: unique provider events, unique effect keys, and no appointment without three matching facts.";
+        invariants.textContent = problems.length ? `Safety check failed: ${problems.join("; ")}` : "Safety checks pass: no duplicate provider message, no duplicate text or call record, and no appointment before all required booking facts.";
       };
 
       const render = () => {
+        renderChecks();
         renderState();
-        renderWalkthrough();
         renderDetails();
       };
 
