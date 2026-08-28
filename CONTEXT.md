@@ -52,6 +52,10 @@ An exception path used after every eligible approved contractor is recorded unav
 
 An explicit property-manager decision recorded with actor and time. The server rejects booking when approval is absent.
 
+## Call approval
+
+An explicit property-manager decision authorizing one outbound call to the named, allowlisted contractor under the current proposal's price and timing authority. It does not authorize different terms or create an appointment.
+
 ## Appointment
 
 The contractor-confirmed visit time created only after manager approval and tenant access authorization. An offered or requested time is not an appointment.
@@ -86,7 +90,15 @@ The dashboard task and manager SMS alert created when automated contractor conta
 
 ## Voice agent authority
 
-The ability to confirm only the already approved contractor, price basis, and proposed visit window. Different terms, ambiguity, or an unenrolled external contractor require manager review or manual contact.
+The terms a consented voice agent may discuss or accept. For an approved contractor, authority is limited to the stored agreement price and manager-approved visit window. For an external contractor, authority is limited to the manager-recorded price ceiling and permitted timing band. Anything outside those bounds, ambiguity, or an unenrolled contractor requires manager review or manual contact.
+
+## Contractor confirmation evidence
+
+The source proving that the current contractor accepted the current proposal and visit window. It is either a matching contractor message or a consented voice-call outcome bound to the approved call; transport completion alone is not confirmation.
+
+## Agent wake event
+
+A verified, deduplicated inbound message or property-manager decision that schedules one serialized repair-agent run for a repair case. The event selects the case; the model never chooses phone numbers or creates its own authority.
 
 ## WebMCP
 
@@ -102,7 +114,11 @@ A release verified as safe for a small, invite-only United States property-manag
 
 ## Demo mode
 
-An isolated Devpost-facing mode containing a fully configured synthetic Pennsylvania organization, buildings, staff, contractor agreements, policies, and repair cases. It provides controlled reset and simulation paths plus a controlled real voice call to the developer's test number, and cannot read production data or use production messaging credentials.
+An isolated Devpost-facing mode containing a fully configured synthetic Pennsylvania organization, buildings, staff, contractor agreements, policies, and repair cases. It provides controlled reset and simulation paths, cannot read production data or use production messaging credentials, and never sends a real message or call.
+
+## Controlled live demo
+
+A separate, protected, time-bounded deployment that accepts verified messages only from the allowlisted tenant phone, sends through the configured Twilio number, and may call only the allowlisted contractor phone after call approval. It uses real provider credentials and an always-on worker during the demo window, but it is not a public demo or a pilot-ready release.
 
 ## Manager notification
 

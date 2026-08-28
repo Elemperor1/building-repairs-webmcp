@@ -63,9 +63,9 @@ Startup must fail closed when `DEMO_MODE=true` and live messaging or voice crede
 1. The judge resets the demo and sees the synthetic banner, the WebMCP status, and `demo-repair-leak` with Maya's initial text.
 2. The browser agent lists and opens the real shared case, triages it as urgent plumbing, and sends a safety/access question to the demo outbox.
 3. The judge uses the simulator as Maya to send the safety reply, the reset-relative access window, and the bundled MMS fixture.
-4. The browser agent uses `record_tenant_access_authorization` to record the access window with the tenant message as evidence.
-5. The agent reads the contractor path, records the primary contractor's simulated unavailability, and receives the approved backup as the next eligible agreement.
-6. The agent proposes the backup using the stored agreement identity and $160 price. The proposal remains unapproved.
+4. The agent reads the contractor path, records the primary contractor's simulated unavailability, and receives the approved backup as the next eligible agreement.
+5. The agent proposes the backup using the stored agreement identity and $160 price. The proposal remains unapproved.
+6. The browser agent uses `record_tenant_access_authorization` to bind Maya's earlier access reply to that exact proposal and visit window.
 7. Priya explicitly approves that contractor and price in the dashboard. Manager approval is not exposed as a WebMCP tool.
 8. The judge uses the simulator as Three Rivers Demo Plumbing to confirm the exact proposed visit window; the agent uses `record_contractor_confirmation` to record that confirmation with the contractor message as evidence.
 9. `book_approved_visit` succeeds only now. The appointment and demo-outbox notification become visible in the same case.

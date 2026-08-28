@@ -6,3 +6,9 @@ dist/
 coverage/
 playwright-report/
 test-results/
+
+# Local research and controlled live-demo prototype
+docs/research/product-name-patterns.md
+docs/research/production-platform-options.md
+docs/research/public-hosting-path.md
+src/server/voice-call-prototype.ts
