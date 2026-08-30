@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fix This SMS consent evidence</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #1f2933; background: #f5f1e8; }
+      body { margin: 0; }
+      main { width: min(760px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0 80px; }
+      a { color: #185c4a; }
+      h1 { margin: 8px 0 12px; font-size: clamp(2rem, 7vw, 3.5rem); line-height: 1; letter-spacing: -0.04em; }
+      h2 { margin-top: 32px; font-size: 1.15rem; }
+      p, li { line-height: 1.65; }
+      blockquote { margin: 24px 0; padding: 18px 20px; border-left: 4px solid #185c4a; background: #fff; line-height: 1.65; }
+      .eyebrow { color: #185c4a; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+      .notice { margin: 28px 0; padding: 18px 20px; border-left: 4px solid #d97706; background: #fffaf0; }
+      footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid #c9c1b3; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Building Repairs WebMCP / Fix This</div>
+      <h1>SMS consent evidence</h1>
+      <p>Last updated August 30, 2026.</p>
+
+      <div class="notice">
+        This page lets campaign reviewers verify the complete private SMS invitation and
+        keyword opt-in workflow. It does not enroll visitors and does not publish the private
+        demo number.
+      </div>
+
+      <h2>Who sends messages, who receives them, and why</h2>
+      <p>
+        Building Repairs WebMCP sends low-volume transactional Fix This SMS and MMS messages.
+        The only recipient is one allowlisted property-maintenance demo participant who
+        voluntarily enrolls by keyword. Messages support that participant's active controlled
+        repair case: report acknowledgement, requests for repair photos or access details,
+        safety and status updates, manager-approved contractor scheduling, and booking
+        confirmation. The program sends no marketing, lead generation, or public broadcasts.
+      </p>
+
+      <h2>Invitation shown before opt-in</h2>
+      <blockquote>
+        Building Repairs WebMCP invites you to receive recurring Fix This transactional SMS
+        and MMS about your controlled repair case. Text START to the private demo number
+        supplied directly to you. Message frequency varies. Message and data rates may apply.
+        Reply HELP for help or STOP to opt out. Consent is not a condition of purchase or
+        service. Review the <a href="/terms.html">SMS Terms</a> and
+        <a href="/privacy.html">Privacy Notice</a> before opting in.
+      </blockquote>
+
+      <h2>Complete opt-in workflow</h2>
+      <ol>
+        <li>
+          The single allowlisted participant receives the invitation above directly, together
+          with the private Fix This demo number.
+        </li>
+        <li>
+          The participant voluntarily texts START from the allowlisted mobile number to the
+          private demo number. SMS keyword is the only initial opt-in method; there is no
+          website form, verbal, paper, QR-code, purchased-list, or imported-contact opt-in.
+        </li>
+        <li>
+          Twilio replies: “Building Repairs WebMCP: Subscribed to Fix This repair-demo texts.
+          Msg frequency varies. Msg &amp; data rates may apply. HELP for help, STOP to opt out.”
+        </li>
+        <li>
+          After opting out, the same participant may text START, YES, or UNSTOP to opt back
+          in. STOP, CANCEL, END, OPTOUT, QUIT, REVOKE, STOPALL, or UNSUBSCRIBE stops automated
+          messaging; HELP or INFO returns help without enrolling anyone.
+        </li>
+      </ol>
+
+      <footer>
+        <a href="/terms.html">Controlled demo SMS terms</a> ·
+        <a href="/privacy.html">Controlled demo privacy notice</a> ·
+        <a href="https://github.com/Elemperor1/building-repairs-webmcp">Project repository</a>
+      </footer>
+    </main>
+  </body>
+</html>
