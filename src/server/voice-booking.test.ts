@@ -682,7 +682,10 @@ describe("controlled-live consented voice booking", () => {
                 arguments: JSON.stringify({
                   outcome: "confirmed",
                   summary: "The contractor accepted the exact terms.",
-                  finalTimeWindow,
+                  finalTimeWindow: {
+                    start: finalTimeWindow.split("/")[0],
+                    end: finalTimeWindow.split("/")[1],
+                  },
                 }),
               },
             ],

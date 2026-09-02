@@ -71,7 +71,13 @@ const outcomeSchema = z
       "consent_withdrawn",
     ]),
     summary: z.string().min(1).max(500),
-    finalTimeWindow: z.string().nullable().optional(),
+    finalTimeWindow: z
+      .union([
+        z.string(),
+        z.object({ start: z.string(), end: z.string() }).transform(({ start, end }) => `${start}/${end}`),
+      ])
+      .nullable()
+      .optional(),
   })
   .strict();
 
