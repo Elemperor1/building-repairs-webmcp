@@ -123,14 +123,35 @@ export const createTwilioPhotoDownloader = ({
     if (!supportedContentTypes.has(expectedContentType)) {
       throw new RejectedPhotoEvidence("Only JPEG, PNG, or WebP photo evidence is accepted.");
     }
-    const response = await fetchMedia(source.sourceUrl, {
+    let response = await fetchMedia(source.sourceUrl, {
       method: "GET",
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(10_000),
       headers: {
         Authorization: `Basic ${Buffer.from(`${config.accountSid}:${config.authToken}`).toString("base64")}`,
       },
     });
+    if (response.status >= 300 && response.status < 400) {
+      let redirectUrl: URL;
+      try {
+        redirectUrl = new URL(response.headers.get("location") ?? "");
+      } catch {
+        throw new RejectedPhotoEvidence("Twilio returned an invalid media redirect.");
+      }
+      if (
+        redirectUrl.origin !== "https://mms.twiliocdn.com" ||
+        redirectUrl.username ||
+        redirectUrl.password
+      ) {
+        throw new RejectedPhotoEvidence("Twilio returned an untrusted media redirect.");
+      }
+      response = await fetchMedia(redirectUrl.toString(), {
+        method: "GET",
+        redirect: "error",
+        signal: AbortSignal.timeout(10_000),
+        headers: undefined,
+      });
+    }
     if (!response.ok) throw new Error(`Twilio media download failed (${response.status}).`);
     const contentType = normalizedContentType(response.headers.get("content-type") ?? "");
     if (contentType !== expectedContentType) {

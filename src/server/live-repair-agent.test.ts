@@ -332,6 +332,48 @@ describe("controlled live SMS wake and repair-agent loop", () => {
     expect(JSON.stringify(visible)).not.toContain(jpeg.toString("base64"));
   });
 
+  it("downloads protected Twilio media through its secure CDN redirect", async () => {
+    const mediaSid = `ME${"b".repeat(32)}`;
+    const messageSid = "SM22222222222222222222222222222222";
+    const mediaUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages/${messageSid}/Media/${mediaSid}`;
+    const cdnUrl = "https://mms.twiliocdn.com/secure-photo?token=short-lived";
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xdb]);
+    const mediaFetch = vi.fn(async (input: string | URL | Request) =>
+      String(input) === mediaUrl
+        ? new Response(null, { status: 307, headers: { Location: cdnUrl } })
+        : new Response(jpeg, {
+            status: 200,
+            headers: { "Content-Type": "image/jpeg" },
+          }),
+    );
+
+    await expect(
+      createTwilioPhotoDownloader({ fetch: mediaFetch as typeof fetch })({
+        sourceUrl: mediaUrl,
+        messageSid,
+        expectedContentType: "image/jpeg",
+      }),
+    ).resolves.toEqual({
+      contentType: "image/jpeg",
+      dataBase64: jpeg.toString("base64"),
+    });
+    expect(mediaFetch).toHaveBeenNthCalledWith(
+      1,
+      mediaUrl,
+      expect.objectContaining({
+        redirect: "manual",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+        },
+      }),
+    );
+    expect(mediaFetch).toHaveBeenNthCalledWith(
+      2,
+      cdnUrl,
+      expect.objectContaining({ redirect: "error", headers: undefined }),
+    );
+  });
+
   it("rejects disguised image bytes and keeps the photo gate closed without duplicate evidence", async () => {
     const mediaSid = `ME${"c".repeat(32)}`;
     const messageSid = "SM44444444444444444444444444444444";
