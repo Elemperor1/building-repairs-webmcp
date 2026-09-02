@@ -19,8 +19,11 @@
     "@mcp-b/webmcp-types": "latest",
     "express": "latest",
     "lucide-react": "latest",
+    "openai": "^7.8.0",
     "react": "latest",
     "react-dom": "latest",
+    "twilio": "^6.1.0",
+    "ws": "^8.21.3",
     "zod": "latest"
   },
   "devDependencies": {
@@ -28,6 +31,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "latest",
     "concurrently": "latest",
     "node-mocks-http": "^1.18.1",

@@ -2,9 +2,28 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RepairCase } from "../shared/types";
 import { api } from "./api";
 
+export const startSharedCasePolling = ({
+  refresh,
+  hidden = () => document.hidden,
+  schedule = window.setInterval,
+  cancel = window.clearInterval,
+}: {
+  refresh: () => Promise<unknown>;
+  hidden?: () => boolean;
+  schedule?: (callback: () => void, milliseconds: number) => number;
+  cancel?: (interval: number) => void;
+}) => {
+  // ponytail: three-second polling is enough for one bounded live demo; use push if latency or scale demands it.
+  const interval = schedule(() => {
+    if (!hidden()) void refresh();
+  }, 3000);
+  return () => cancel(interval);
+};
+
 export const useRepairCases = () => {
   const [cases, setCases] = useState<RepairCase[]>([]);
   const [demoMode, setDemoMode] = useState(false);
+  const [controlledLiveMode, setControlledLiveMode] = useState<boolean>();
   const [selectedId, setSelectedId] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>();
@@ -14,9 +33,14 @@ export const useRepairCases = () => {
   const refresh = useCallback(async (preferredId?: string) => {
     setError(undefined);
     try {
-      const { cases: nextCases, demoMode: nextDemoMode } = await api.listCases();
+      const {
+        cases: nextCases,
+        demoMode: nextDemoMode,
+        controlledLiveMode: nextControlledLiveMode,
+      } = await api.listCases();
       setCases(nextCases);
       setDemoMode(nextDemoMode);
+      setControlledLiveMode(nextControlledLiveMode);
       setSelectedId((current) => {
         const candidate = preferredId ?? current;
         return candidate && nextCases.some((item) => item.id === candidate)
@@ -33,6 +57,11 @@ export const useRepairCases = () => {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!controlledLiveMode) return;
+    return startSharedCasePolling({ refresh });
+  }, [controlledLiveMode, refresh]);
 
   useEffect(() => {
     if (!notice) return;
@@ -92,6 +121,7 @@ export const useRepairCases = () => {
   return {
     cases,
     demoMode,
+    controlledLiveMode,
     selected,
     selectedId,
     loading,

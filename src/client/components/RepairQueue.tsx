@@ -9,6 +9,7 @@ interface RepairQueueProps {
   demoMode: boolean;
   resetting: boolean;
   onResetDemo: () => Promise<void>;
+  controlledLiveMode: boolean;
 }
 
 const groups: Array<{ status: RepairStatus; label: string }> = [
@@ -33,6 +34,7 @@ export function RepairQueue({
   demoMode,
   resetting,
   onResetDemo,
+  controlledLiveMode,
 }: RepairQueueProps) {
   return (
     <aside className="repair-queue" aria-label="Repair queue">
@@ -90,7 +92,7 @@ export function RepairQueue({
             {resetting ? "Resetting…" : "Reset synthetic demo"}
           </button>
         </div>
-      ) : import.meta.env.DEV ? (
+      ) : import.meta.env.DEV && !controlledLiveMode ? (
         <button className="test-sms-button" type="button" onClick={onOpenSmsSimulator}>
           <MessageSquarePlus aria-hidden="true" />
           Test an incoming text

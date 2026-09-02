@@ -1,4 +1,5 @@
 import type { AppStore, ContractorAgreement } from "../shared/types.js";
+import { controlledLiveVoiceConfig, isControlledLiveMode } from "./controlled-live.js";
 
 export const DEMO_CASE_ID = "demo-repair-leak";
 
@@ -14,12 +15,23 @@ const forbiddenDemoEnvironment = [
   "OPENAI_API_KEY",
   "OPENAI_PROJECT_ID",
   "OPENAI_WEBHOOK_SECRET",
+  "CONTROLLED_LIVE_TENANT_PHONE",
+  "CONTROLLED_LIVE_CONTRACTOR_PHONE",
+  "CONTROLLED_LIVE_CONTRACTOR_VOICE_ENROLLED_AT",
+  "OPENAI_TEXT_MODEL",
 ] as const;
 
 export const assertDemoSafety = (env: NodeJS.ProcessEnv = process.env) => {
   if (!isDemoMode(env)) return;
-  const unsafe = forbiddenDemoEnvironment.find((name) => env[name]?.trim());
+  const unsafe = isControlledLiveMode(env)
+    ? "CONTROLLED_LIVE_MODE"
+    : forbiddenDemoEnvironment.find((name) => env[name]?.trim());
   if (unsafe) throw new Error(`DEMO_MODE cannot start with ${unsafe} set.`);
+};
+
+export const assertRuntimeSafety = (env: NodeJS.ProcessEnv = process.env) => {
+  assertDemoSafety(env);
+  if (isControlledLiveMode(env)) controlledLiveVoiceConfig(env);
 };
 
 const addHours = (value: Date, hours: number) =>

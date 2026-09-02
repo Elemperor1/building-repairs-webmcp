@@ -181,6 +181,10 @@ describe("isolated Pennsylvania demo HTTP interface", () => {
     expect(() => createApp()).toThrow("DEMO_MODE cannot start with VOICE_ALLOWED_TO set.");
 
     vi.stubEnv("VOICE_ALLOWED_TO", "");
+    vi.stubEnv("CONTROLLED_LIVE_MODE", "true");
+    expect(() => createApp()).toThrow("DEMO_MODE cannot start with CONTROLLED_LIVE_MODE set.");
+
+    vi.stubEnv("CONTROLLED_LIVE_MODE", "false");
   });
 
   it("leaves the non-demo store untouched", async () => {

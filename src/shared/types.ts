@@ -45,6 +45,36 @@ export interface RepairMessage {
   channel: "sms" | "mms" | "dashboard";
   from?: string;
   mediaId?: "demo-bathroom-leak";
+  photoEvidenceIds?: string[];
+}
+
+export type PhotoEvidenceContentType = "image/jpeg" | "image/png" | "image/webp";
+
+export interface PhotoEvidence {
+  id: string;
+  messageId: string;
+  status: "pending" | "available" | "rejected";
+  receivedAt: string;
+  contentType?: PhotoEvidenceContentType;
+  byteLength?: number;
+  sha256?: string;
+  rejectionReason?: string;
+}
+
+export interface PhotoEvidenceJob {
+  id: string;
+  caseId: string;
+  messageId: string;
+  sourceUrl: string;
+  sourceMessageSid: string;
+  expectedContentType: string;
+  status: "pending" | "fetching" | "retryable" | "available" | "rejected" | "superseded";
+  receivedAt: string;
+  updatedAt: string;
+  contentType?: PhotoEvidenceContentType;
+  dataBase64?: string;
+  byteLength?: number;
+  sha256?: string;
 }
 
 export interface ActivityEvent {
@@ -76,6 +106,38 @@ export interface Approval {
   timeWindow: string;
 }
 
+export interface ContractorCallApproval {
+  id: string;
+  approvedBy: "Property manager";
+  approvedAt: string;
+  proposalId: string;
+  caseRevision: number;
+  contractorAlias: "contractor";
+  agreementId: string;
+  storedPrice: {
+    costPence: number;
+    currency: "USD";
+    priceBasis: string;
+  };
+  managerTimeWindow: string;
+  tenantAccess: TenantAccessAuthorization;
+  callsAuthorized: 1;
+  callsConsumed: 0 | 1;
+  revokedAt?: string;
+  revokedReason?: string;
+}
+
+export interface ContractorCallApprovalInput {
+  proposalId: string;
+  caseRevision: number;
+  agreementId: string;
+  costPence: number;
+  currency: "USD";
+  managerTimeWindow: string;
+  tenantAccessSourceMessageId: string;
+  tenantTimeWindow: string;
+}
+
 export interface TenantAccessAuthorization {
   sourceMessageId: string;
   proposalId: string;
@@ -85,14 +147,26 @@ export interface TenantAccessAuthorization {
 
 export type TenantAccessAuthorizationInput = Omit<TenantAccessAuthorization, "recordedAt">;
 
-export interface ContractorConfirmation {
+export interface MessageContractorConfirmation {
   sourceMessageId: string;
   proposalId: string;
   timeWindow: string;
   recordedAt: string;
 }
 
-export type ContractorConfirmationInput = Omit<ContractorConfirmation, "recordedAt">;
+export interface VoiceContractorConfirmation {
+  source: "consented_voice";
+  approvalId: string;
+  providerCallKey: string;
+  contractorAlias: "contractor";
+  consentAt: string;
+  proposalId: string;
+  timeWindow: string;
+  recordedAt: string;
+}
+
+export type ContractorConfirmation = MessageContractorConfirmation | VoiceContractorConfirmation;
+export type ContractorConfirmationInput = Omit<MessageContractorConfirmation, "recordedAt">;
 
 export interface Appointment {
   contractorName: string;
@@ -124,6 +198,128 @@ export interface DemoFixture {
   backupVisitWindow: string;
 }
 
+export type AgentWakeEventStatus = "pending" | "claimed" | "handled";
+export type RepairAgentRunStatus =
+  | "active"
+  | "completed"
+  | "failed"
+  | "superseded"
+  | "interrupted";
+export type OutboundEffectStatus =
+  | "planned"
+  | "dispatching"
+  | "succeeded"
+  | "retryable"
+  | "superseded"
+  | "unknown"
+  | "failed";
+
+export interface AgentWakeEvent {
+  id: string;
+  sourceKey: string;
+  sequence: number;
+  messageId: string;
+  status: AgentWakeEventStatus;
+  receivedAt: string;
+}
+
+export interface RepairAgentRun {
+  id: string;
+  status: RepairAgentRunStatus;
+  snapshotRevision: number;
+  highWater: number;
+  startedAt: string;
+  finishedAt?: string;
+  error?: string;
+}
+
+interface OutboundEffectBase {
+  effectKey: string;
+  status: OutboundEffectStatus;
+  attempts: number;
+  createdAt: string;
+  updatedAt: string;
+  delivery?: OutboundText["delivery"];
+  providerId?: string;
+  providerKey?: string;
+}
+
+export interface TenantSmsEffect extends OutboundEffectBase {
+  type: "tenant_sms";
+  target: "tenant";
+  body: string;
+  purpose?: "agent_reply" | "booking_confirmation";
+}
+
+export interface ContractorCallEffect extends OutboundEffectBase {
+  type: "contractor_call";
+  target: "contractor";
+  approvalId: string;
+}
+
+export type OutboundEffect = TenantSmsEffect | ContractorCallEffect;
+
+export interface ContractorVoiceCall {
+  effectKey: string;
+  approvalId: string;
+  providerId: string;
+  providerKey: string;
+  enrollmentConsentAt: string;
+  disclosureServed: boolean;
+  perCallConsent: "not_requested" | "pending" | "granted" | "declined" | "timed_out" | "withdrawn";
+  consentAt?: string;
+  sipBridgeOffered: boolean;
+  openAiConnected: boolean;
+  openAiConnectionStatus: "not_requested" | "accepting" | "connected" | "unknown";
+  transportStatus: "queued" | "initiated" | "ringing" | "in-progress" | "completed" | "busy" | "failed" | "no-answer" | "canceled";
+  transportSequence?: number;
+  outcome?:
+    | "confirmed"
+    | "declined"
+    | "requested_change"
+    | "ambiguous"
+    | "consent_withdrawn"
+    | "consent_declined"
+    | "no_consent_response"
+    | "unreachable"
+    | "failed"
+    | "needs_manual_follow_up";
+  outcomeProvisional?: boolean;
+  outcomeSummary?: string;
+  transcriptDeletedAt?: string;
+  transcript: Array<{
+    party: "contractor" | "agent";
+    text: string;
+    recordedAt: string;
+  }>;
+  handledCallbacks: string[];
+}
+
+export interface ManualContactTask {
+  id: string;
+  approvalId: string;
+  reason: string;
+  status: "open";
+  createdAt: string;
+}
+
+export interface RepairAgentState {
+  revision: number;
+  nextSequence: number;
+  phase:
+    | "idle"
+    | "pending"
+    | "working"
+    | "waiting_for_tenant"
+    | "waiting_for_manager"
+    | "stopped";
+  tenantMessaging: "active" | "stopped";
+  events: AgentWakeEvent[];
+  runs: RepairAgentRun[];
+  activeRun?: RepairAgentRun;
+  effects: OutboundEffect[];
+}
+
 export interface RepairCase {
   id: string;
   buildingId: string;
@@ -152,10 +348,15 @@ export interface RepairCase {
   externalSearch?: ExternalSearchAuthorization;
   proposal?: ContractorProposal;
   approval?: Approval;
+  callApproval?: ContractorCallApproval;
+  voiceCall?: ContractorVoiceCall;
+  manualContactTasks?: ManualContactTask[];
   tenantAccessAuthorization?: TenantAccessAuthorization;
   contractorConfirmation?: ContractorConfirmation;
   appointment?: Appointment;
   notifications?: OutboundText[];
+  photoEvidence?: PhotoEvidence[];
+  repairAgent?: RepairAgentState;
   demoFixture?: DemoFixture;
 }
 
@@ -194,11 +395,20 @@ export interface AppStore {
   cases: RepairCase[];
   contractorAgreements: ContractorAgreement[];
   outbox: OutboundText[];
+  photoEvidenceJobs?: PhotoEvidenceJob[];
+  controlledLive?: {
+    voiceEnrollmentWithdrawnAt?: string;
+    tenantMessagingStoppedAt?: string;
+    handledVoiceCallbacks: string[];
+    handledSmsEvents: string[];
+    retiredVoiceCallKeys: string[];
+  };
 }
 
 export interface CaseListResponse {
   cases: RepairCase[];
   demoMode: boolean;
+  controlledLiveMode: boolean;
 }
 
 export interface InboundSmsInput {

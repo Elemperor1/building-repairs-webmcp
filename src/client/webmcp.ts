@@ -7,6 +7,7 @@ type ToolStatus = "connected" | "unavailable" | "error";
 
 interface UseRepairWebMcpInput {
   cases: RepairCase[];
+  controlledLiveMode: boolean | undefined;
   onChanged: (repair: RepairCase) => void;
 }
 
@@ -143,7 +144,11 @@ const proposalMessageEvidenceSchema = {
   additionalProperties: false,
 } as const satisfies JsonSchemaForInference;
 
-export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): ToolStatus {
+export function useRepairWebMcp({
+  cases,
+  controlledLiveMode,
+  onChanged,
+}: UseRepairWebMcpInput): ToolStatus {
   const [status, setStatus] = useState<ToolStatus>("unavailable");
   const casesRef = useRef(cases);
   const onChangedRef = useRef(onChanged);
@@ -152,6 +157,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
   onChangedRef.current = onChanged;
 
   useEffect(() => {
+    if (controlledLiveMode === undefined) return;
     const modelContext = document.modelContext ?? navigator.modelContext;
     if (!modelContext) {
       setStatus("unavailable");
@@ -209,7 +215,9 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             },
             { signal: controller.signal },
           ),
-          modelContext.registerTool(
+          controlledLiveMode
+            ? Promise.resolve()
+            : modelContext.registerTool(
             {
               name: "triage_repair",
               description:
@@ -223,7 +231,9 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             },
             { signal: controller.signal },
           ),
-          modelContext.registerTool(
+          controlledLiveMode
+            ? Promise.resolve()
+            : modelContext.registerTool(
             {
               name: "send_tenant_message",
               description:
@@ -256,7 +266,9 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             },
             { signal: controller.signal },
           ),
-          modelContext.registerTool(
+          controlledLiveMode
+            ? Promise.resolve()
+            : modelContext.registerTool(
             {
               name: "record_preferred_contractor_unavailable",
               description:
@@ -270,7 +282,9 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             },
             { signal: controller.signal },
           ),
-          modelContext.registerTool(
+          controlledLiveMode
+            ? Promise.resolve()
+            : modelContext.registerTool(
             {
               name: "start_external_contractor_search",
               description:
@@ -284,7 +298,9 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             },
             { signal: controller.signal },
           ),
-          modelContext.registerTool(
+          controlledLiveMode
+            ? Promise.resolve()
+            : modelContext.registerTool(
             {
               name: "propose_external_contractor_visit",
               description:
@@ -308,7 +324,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "record_tenant_access_authorization",
               description:
-                "Record tenant access only from the current tenant's message for the current proposal and exact visit window. This does not approve or book the visit.",
+                "Record the tenant's stated access window only from the current tenant's message for the current proposal. This does not approve, contact a contractor, or book the visit.",
               inputSchema: proposalMessageEvidenceSchema,
               execute: async ({ caseId, ...input }) => {
                 const repair = await api.recordTenantAccessAuthorization(caseId, input);
@@ -318,7 +334,9 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             },
             { signal: controller.signal },
           ),
-          modelContext.registerTool(
+          controlledLiveMode
+            ? Promise.resolve()
+            : modelContext.registerTool(
             {
               name: "record_contractor_confirmation",
               description:
@@ -332,7 +350,9 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             },
             { signal: controller.signal },
           ),
-          modelContext.registerTool(
+          controlledLiveMode
+            ? Promise.resolve()
+            : modelContext.registerTool(
             {
               name: "book_approved_visit",
               description:
@@ -359,7 +379,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
 
     void register();
     return () => controller.abort();
-  }, []);
+  }, [controlledLiveMode]);
 
   return status;
 }

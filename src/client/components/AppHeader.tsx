@@ -3,9 +3,10 @@ import { Building2, ChevronDown, Menu, ShieldCheck } from "lucide-react";
 interface AppHeaderProps {
   toolStatus: "connected" | "unavailable" | "error";
   demoMode: boolean;
+  controlledLiveMode: boolean;
 }
 
-export function AppHeader({ toolStatus, demoMode }: AppHeaderProps) {
+export function AppHeader({ toolStatus, demoMode, controlledLiveMode }: AppHeaderProps) {
   const statusLabel =
     toolStatus === "connected"
       ? "Agent tools connected"
@@ -14,7 +15,7 @@ export function AppHeader({ toolStatus, demoMode }: AppHeaderProps) {
         : "Browser agent tools unavailable";
 
   return (
-    <header className="app-header">
+    <header className={controlledLiveMode ? "app-header app-header--controlled" : "app-header"}>
       <button className="icon-button menu-button" aria-label="Open navigation" type="button">
         <Menu aria-hidden="true" />
       </button>
@@ -28,15 +29,27 @@ export function AppHeader({ toolStatus, demoMode }: AppHeaderProps) {
           <strong>Synthetic Pennsylvania demo</strong>
           <span>No real messages or calls</span>
         </div>
+      ) : controlledLiveMode ? (
+        <div className="demo-banner" role="status">
+          <ShieldCheck aria-hidden="true" />
+          <strong>Protected controlled live</strong>
+          <span>Manager authentication required</span>
+        </div>
       ) : null}
       <div className="header-actions">
         <button
           className="building-picker"
           type="button"
-          aria-label={`Choose building: ${demoMode ? "Hawthorn Court Demo Apartments" : "18 Hawthorn Court"}`}
+          aria-label={`Choose building: ${demoMode ? "Hawthorn Court Demo Apartments" : controlledLiveMode ? "Controlled repair case" : "18 Hawthorn Court"}`}
         >
           <Building2 aria-hidden="true" />
-          <span>{demoMode ? "Hawthorn Court Demo Apartments" : "18 Hawthorn Court"}</span>
+          <span>
+            {demoMode
+              ? "Hawthorn Court Demo Apartments"
+              : controlledLiveMode
+                ? "Controlled repair case"
+                : "18 Hawthorn Court"}
+          </span>
           <ChevronDown aria-hidden="true" />
         </button>
         <div className={`tool-status tool-status--${toolStatus}`} role="status">

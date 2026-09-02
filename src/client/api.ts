@@ -1,5 +1,6 @@
 import type {
   CaseListResponse,
+  ContractorCallApprovalInput,
   ContractorConfirmationInput,
   DemoMessageInput,
   InboundSmsInput,
@@ -106,6 +107,31 @@ export const api = {
 
   async approve(caseId: string, approvedBy = "Property manager") {
     return (await post<RepairResponse>(`/api/cases/${caseId}/approve`, { approvedBy })).repair;
+  },
+
+  async approveContractorCall(caseId: string, input: ContractorCallApprovalInput) {
+    return (await post<RepairResponse>(`/api/cases/${caseId}/call-approval`, input)).repair;
+  },
+
+  async reconcileOutboundEffect(
+    caseId: string,
+    effectKey: string,
+    resolution: "absent" | "accepted",
+    providerId?: string,
+    providerStatus?: NonNullable<RepairCase["voiceCall"]>["transportStatus"],
+  ) {
+    return (
+      await post<RepairResponse>(`/api/cases/${caseId}/effect-reconciliation`, {
+        effectKey,
+        resolution,
+        confirmation:
+          resolution === "accepted"
+            ? "provider confirms outbound effect was accepted"
+            : "provider confirms no outbound effect was accepted; reconcile saved record",
+        ...(providerId ? { providerId } : {}),
+        ...(providerStatus ? { providerStatus } : {}),
+      })
+    ).repair;
   },
 
   async recordTenantAccessAuthorization(caseId: string, input: TenantAccessAuthorizationInput) {

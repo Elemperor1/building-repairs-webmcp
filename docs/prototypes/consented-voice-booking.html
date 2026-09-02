@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fix This consented voice booking prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17211b;
+      --muted: #5e6b63;
+      --paper: #f3f5f2;
+      --panel: #ffffff;
+      --line: #d7ded9;
+      --accent: #176b4d;
+      --accent-soft: #e5f3ec;
+      --warn: #9a5b08;
+      --warn-soft: #fff4dd;
+      --danger: #a3312b;
+      --danger-soft: #fdebea;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button { font: inherit; }
+    main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 72px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 840px; margin-bottom: 12px; font-size: clamp(2rem, 5vw, 3.7rem); line-height: 1.04; letter-spacing: -0.04em; }
+    h2 { margin-bottom: 8px; font-size: 1.35rem; letter-spacing: -0.015em; }
+    h3 { margin-bottom: 8px; font-size: 1rem; }
+    .eyebrow { margin-bottom: 12px; color: var(--accent); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    .lede { max-width: 850px; color: var(--muted); font-size: 1.08rem; }
+    .boundary {
+      margin: 24px 0 32px;
+      padding: 16px 18px;
+      border: 1px solid #b9d8c7;
+      border-radius: var(--radius);
+      background: var(--accent-soft);
+    }
+    .boundary strong { display: block; margin-bottom: 4px; }
+    .section { margin-top: 30px; }
+    .section-copy { max-width: 820px; color: var(--muted); }
+    .tabs { display: flex; gap: 8px; overflow-x: auto; padding: 3px 3px 10px; scrollbar-width: thin; }
+    .tab, .action {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .tab { flex: 0 0 auto; padding: 10px 15px; }
+    .tab:hover, .tab:focus-visible, .action:hover, .action:focus-visible { border-color: var(--accent); outline: 3px solid transparent; }
+    .tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: white; }
+    .scenario {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.6fr);
+      gap: 18px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 12px 35px rgb(22 49 35 / 6%);
+    }
+    .scenario p { margin-bottom: 0; color: var(--muted); }
+    .result {
+      align-self: stretch;
+      padding: 15px;
+      border-radius: 11px;
+      background: var(--paper);
+    }
+    .result.pass { background: var(--accent-soft); color: #0d5138; }
+    .result.fail { background: var(--danger-soft); color: var(--danger); }
+    .result strong { display: block; margin-bottom: 4px; }
+    .state-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .card, .table-panel, details {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .card { min-height: 174px; padding: 17px; }
+    .value { display: block; margin: 8px 0 14px; font-size: 1.15rem; font-weight: 800; }
+    dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin: 0; font-size: 0.88rem; }
+    dt { color: var(--muted); }
+    dd { margin: 0; text-align: right; font-weight: 700; }
+    .gates { display: grid; gap: 7px; }
+    .gate { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 700; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #bdc5bf; }
+    .gate.ok .dot { background: var(--accent); }
+    .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .table-panel { overflow: hidden; }
+    .table-panel h3 { padding: 16px 16px 6px; }
+    .empty { padding: 10px 16px 18px; color: var(--muted); }
+    .scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    th, td { padding: 10px 14px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    code { font: 0.78rem ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .pill { display: inline-block; padding: 3px 8px; border-radius: 999px; background: var(--paper); font-size: 0.76rem; font-weight: 800; white-space: nowrap; }
+    .pill.succeeded { background: var(--accent-soft); color: #0d5138; }
+    .pill.unknown { background: var(--warn-soft); color: var(--warn); }
+    .pill.retryable, .pill.dispatching { background: #eaf0f8; color: #31557a; }
+    .pill.superseded { color: var(--muted); }
+    .invariant {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid #b9d8c7;
+      border-radius: 11px;
+      background: var(--accent-soft);
+      color: #0d5138;
+      font-weight: 750;
+    }
+    .invariant.fail { border-color: #efc6c3; background: var(--danger-soft); color: var(--danger); }
+    details { margin-top: 14px; padding: 16px; }
+    summary { cursor: pointer; font-weight: 800; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+    .action { padding: 9px 13px; }
+    .technical-note { margin: 10px 0 0; color: var(--muted); font-size: 0.88rem; }
+    .last-change { margin: 14px 0 0; color: var(--muted); }
+
+    @media (max-width: 920px) {
+      .state-grid { grid-template-columns: 1fr 1fr; }
+      .scenario, .tables { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      main { width: min(100% - 20px, 1180px); padding-top: 24px; }
+      .state-grid { grid-template-columns: 1fr; }
+      .scenario { padding: 17px; }
+      .card { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Fix This · controlled-live logic check</p>
+    <h1>Can one approved call safely finish the repair?</h1>
+    <p class="lede">
+      This throwaway prototype checks the seam between the accepted manager approval, the proven
+      disclosure-and-keypad voice gate, contractor confirmation, booking, and the tenant’s final text.
+      It asks whether every step can stay bound to one repair case without duplicate calls, bookings, or messages.
+    </p>
+    <div class="boundary">
+      <strong>Test data only. Nothing on this page can place a call or send a text.</strong>
+      Phone numbers never enter the model: the provider adapter receives only the secret-bound roles
+      <em>contractor</em>, <em>messaging service</em>, and <em>tenant</em>. Raw audio is never stored.
+    </div>
+
+    <section aria-labelledby="checks-title">
+      <h2 id="checks-title">Choose a one-click check</h2>
+      <p class="section-copy">Each tab starts from the same manager-ready repair case, runs one complete path, and shows the saved result.</p>
+      <div id="scenario-tabs" class="tabs" role="tablist" aria-label="Voice booking checks"></div>
+      <div id="scenario" class="scenario" role="tabpanel" tabindex="0"></div>
+    </section>
+
+    <section class="section" aria-labelledby="state-title">
+      <h2 id="state-title">Saved repair case</h2>
+      <p id="last-change" class="last-change" aria-live="polite"></p>
+      <div id="state" class="state-grid"></div>
+      <div id="invariants" class="invariant" aria-live="polite"></div>
+    </section>
+
+    <section class="section tables" aria-label="Saved technical records">
+      <article class="table-panel"><h3>Calls and texts</h3><div id="effects"></div></article>
+      <article class="table-panel"><h3>Manual follow-up</h3><div id="tasks"></div></article>
+      <article class="table-panel"><h3>Post-consent transcript</h3><div id="transcript"></div></article>
+      <article class="table-panel"><h3>Audit trail</h3><div id="audit"></div></article>
+    </section>
+
+    <details>
+      <summary>Change one event at a time</summary>
+      <p class="technical-note">These controls are optional. Illegal events are rejected visibly; they do not mutate the saved case.</p>
+      <div id="actions" class="actions"></div>
+    </details>
+  </main>
+
+  <script>
+    const VoiceBookingModel = (() => {
+      const MANAGER_WINDOW = "2026-09-01T13:00:00.000Z/2026-09-01T17:00:00.000Z";
+      const TENANT_WINDOW = "2026-09-01T14:00:00.000Z/2026-09-01T16:00:00.000Z";
+      const FINAL_WINDOW = "2026-09-01T14:30:00.000Z/2026-09-01T15:30:00.000Z";
+      const callbackActions = new Set([
+        "CALL_START_ACCEPTED", "SERVE_DISCLOSURE", "DTMF", "CONNECT_AI", "OUTCOME",
+        "WITHDRAW_CONSENT", "CALL_UNREACHABLE", "SMS_ACCEPTED"
+      ]);
+
+      const initialState = () => ({
+        factsRevision: 7,
+        contentState: "manager-ready test repair",
+        proposal: {
+          id: "proposal-1",
+          contractorAlias: "contractor",
+          agreementId: "controlled-live-agreement",
+          storedPriceCents: 16050,
+          currency: "USD",
+          managerWindow: MANAGER_WINDOW
+        },
+        tenantAccess: {
+          proposalId: "proposal-1",
+          sourceMessageId: "tenant-message-1",
+          window: TENANT_WINDOW
+        },
+        approval: null,
+        voiceEnrollment: "active",
+        voiceSession: null,
+        contractorConfirmation: null,
+        appointment: null,
+        effects: [],
+        manualTasks: [],
+        handledCallbacks: [],
+        duplicateCallbacksIgnored: 0,
+        replayMarkers: [],
+        rawAudioStored: false,
+        audit: [],
+        lastOutcome: "Choose a check above, or use the optional event controls."
+      });
+
+      const clone = (value) => structuredClone(value);
+      const finish = (state, message) => {
+        state.lastOutcome = message;
+        return state;
+      };
+      const reject = (state, message) => finish(state, `Stopped safely: ${message}`);
+      const audit = (state, label, detail = "") => state.audit.push({ label, detail });
+      const parseWindow = (value) => value.split("/").map((part) => Date.parse(part));
+      const isInside = (inner, outer) => {
+        const [innerStart, innerEnd] = parseWindow(inner);
+        const [outerStart, outerEnd] = parseWindow(outer);
+        return [innerStart, innerEnd, outerStart, outerEnd].every(Number.isFinite) &&
+          innerStart >= outerStart && innerEnd <= outerEnd && innerStart < innerEnd;
+      };
+      const effect = (state, key) => state.effects.find((item) => item.key === key);
+      const callEffect = (state) => state.effects.find((item) => item.type === "contractor_call");
+      const smsEffect = (state) => state.effects.find((item) => item.type === "tenant_booking_sms");
+      const planEffect = (state, record) => {
+        const existing = effect(state, record.key);
+        if (existing) return existing;
+        const planned = { ...record, status: "planned", attempts: 0 };
+        state.effects.push(planned);
+        return planned;
+      };
+      const createManualTask = (state, reason) => {
+        const key = `manual:${callEffect(state)?.key ?? "no-call"}`;
+        if (!state.manualTasks.some((task) => task.key === key)) {
+          state.manualTasks.push({ key, reason, status: "manager follow-up needed" });
+          audit(state, "Manual contact task created", reason);
+        }
+      };
+      const acceptCall = (state, allowedStatuses) => {
+        const call = callEffect(state);
+        if (!call || !allowedStatuses.includes(call.status)) return false;
+        if (!state.approval || state.approval.callsConsumed !== 0) return false;
+        call.status = "succeeded";
+        call.providerKey = "provider-call-…a91f";
+        state.approval.callsConsumed = 1;
+        state.voiceSession = {
+          callEffectKey: call.key,
+          providerKey: call.providerKey,
+          phase: "waiting for fixed disclosure",
+          disclosureServed: false,
+          perCallConsent: "not asked",
+          consentAt: null,
+          openAiConnected: false,
+          outcome: null,
+          transcript: [],
+          transcriptDeleted: false
+        };
+        audit(state, "Provider accepted one approved contractor call", "The one-call authority is now consumed.");
+        return true;
+      };
+      const matchingBookingFacts = (state) => {
+        const { proposal, tenantAccess, approval, contractorConfirmation: confirmation } = state;
+        const call = callEffect(state);
+        return Boolean(
+          proposal && tenantAccess && approval && confirmation && call &&
+          approval.proposalId === proposal.id &&
+          approval.factsRevision === state.factsRevision &&
+          approval.contractorAlias === proposal.contractorAlias &&
+          approval.agreementId === proposal.agreementId &&
+          approval.storedPriceCents === proposal.storedPriceCents &&
+          approval.managerWindow === proposal.managerWindow &&
+          approval.tenantWindow === tenantAccess.window &&
+          approval.callsConsumed === 1 &&
+          confirmation.proposalId === proposal.id &&
+          confirmation.approvalId === approval.id &&
+          confirmation.contractorAlias === proposal.contractorAlias &&
+          confirmation.providerKey === call.providerKey &&
+          confirmation.consentAt &&
+          isInside(confirmation.finalWindow, approval.managerWindow) &&
+          isInside(confirmation.finalWindow, tenantAccess.window)
+        );
+      };
+      const settleBooking = (state) => {
+        if (!matchingBookingFacts(state) || state.appointment) return;
+        state.appointment = {
+          id: `appointment:${state.proposal.id}`,
+          proposalId: state.proposal.id,
+          contractorAlias: state.proposal.contractorAlias,
+          finalWindow: state.contractorConfirmation.finalWindow
+        };
+        planEffect(state, {
+          key: `sms:tenant:booking:${state.proposal.id}:${state.contractorConfirmation.id}`,
+          type: "tenant_booking_sms",
+          target: "tenant",
+          purpose: "One booking confirmation text"
+        });
+        audit(state, "Visit booked automatically", state.contractorConfirmation.finalWindow);
+        audit(state, "Tenant confirmation text prepared once", "The saved effect must succeed before delivery is claimed.");
+      };
+
+      const reduce = (current, action) => {
+        const state = clone(current);
+        if (callbackActions.has(action.type)) {
+          if (!action.callbackId) return reject(state, "A provider callback needs its replay identifier.");
+          if (state.handledCallbacks.includes(action.callbackId)) {
+            state.duplicateCallbacksIgnored += 1;
+            return finish(state, "Duplicate provider callback ignored; no state or effect was repeated.");
+          }
+          state.handledCallbacks.push(action.callbackId);
+        }
+
+        switch (action.type) {
+          case "APPROVE": {
+            if (!state.proposal || !state.tenantAccess) return reject(state, "The proposal and tenant access window are required.");
+            if (state.voiceEnrollment !== "active") return reject(state, "The contractor withdrew voice enrollment.");
+            if (state.approval) return reject(state, "This proposal already has one call approval.");
+            state.approval = {
+              id: `approval:${state.proposal.id}:r${state.factsRevision}`,
+              proposalId: state.proposal.id,
+              factsRevision: state.factsRevision,
+              contractorAlias: state.proposal.contractorAlias,
+              agreementId: state.proposal.agreementId,
+              storedPriceCents: state.proposal.storedPriceCents,
+              managerWindow: state.proposal.managerWindow,
+              tenantWindow: state.tenantAccess.window,
+              callsAuthorized: 1,
+              callsConsumed: 0
+            };
+            planEffect(state, {
+              key: `call:contractor:${state.proposal.id}:r${state.factsRevision}`,
+              type: "contractor_call",
+              target: "contractor",
+              purpose: "One disclosed contractor call"
+            });
+            audit(state, "Property manager approved one contractor call", "$160.50 at the stored agreement price; exact manager and tenant timing bounds.");
+            return finish(state, "Approval saved. One call record is ready for the background worker; no number entered the repair case.");
+          }
+          case "CHANGE_FACTS": {
+            state.factsRevision += 1;
+            state.proposal.managerWindow = "2026-09-01T14:00:00.000Z/2026-09-01T18:00:00.000Z";
+            state.approval = null;
+            state.contractorConfirmation = null;
+            const call = callEffect(state);
+            if (call && ["planned", "retryable"].includes(call.status)) call.status = "superseded";
+            audit(state, "Reviewed facts changed", "Old approval and unsent call authority were cleared.");
+            return finish(state, "The changed timing requires a fresh manager approval before any call.");
+          }
+          case "DISPATCH_CALL": {
+            const call = callEffect(state);
+            if (!call || !["planned", "retryable"].includes(call.status)) {
+              return reject(state, "There is no approved call that can be sent now.");
+            }
+            if (!state.approval || state.approval.callsConsumed !== 0) return reject(state, "The one-call authority is unavailable.");
+            call.status = "dispatching";
+            call.attempts += 1;
+            audit(state, "Contractor call sent to provider", "The authority is not consumed until the provider accepts the dial.");
+            return finish(state, "The saved call record is awaiting the provider start result.");
+          }
+          case "CALL_START_KNOWN_FAILURE": {
+            const call = callEffect(state);
+            if (!call || call.status !== "dispatching") return reject(state, "No call start is in progress.");
+            call.status = "retryable";
+            audit(state, "Provider rejected the dial before acceptance", "The same saved call record may retry.");
+            return finish(state, "Known pre-acceptance failure: the approval is unconsumed and the same call record can retry.");
+          }
+          case "CALL_START_UNKNOWN": {
+            const call = callEffect(state);
+            if (!call || call.status !== "dispatching") return reject(state, "No call start is in progress.");
+            call.status = "unknown";
+            audit(state, "Call start result unknown", "Fix This must reconcile with the provider before retry.");
+            return finish(state, "Unknown provider result: automatic retry is blocked.");
+          }
+          case "RECONCILE_ABSENT": {
+            const call = callEffect(state);
+            if (!call || call.status !== "unknown") return reject(state, "There is no unknown call to reconcile.");
+            call.status = "retryable";
+            audit(state, "Provider confirmed no call was created", "The same record may retry.");
+            return finish(state, "Reconciliation proved absence; the original call record can retry.");
+          }
+          case "CALL_START_ACCEPTED":
+            return acceptCall(state, ["dispatching"])
+              ? finish(state, "Provider accepted the one approved call. The fixed disclosure must run next.")
+              : reject(state, "The callback did not match a dispatching approved call.");
+          case "SERVE_DISCLOSURE": {
+            if (!state.voiceSession || state.voiceSession.phase !== "waiting for fixed disclosure") {
+              return reject(state, "There is no accepted call waiting for disclosure.");
+            }
+            state.voiceSession.phase = "waiting for keypad consent";
+            state.voiceSession.disclosureServed = true;
+            audit(state, "Fixed AI disclosure served by Twilio", "OpenAI remains disconnected.");
+            return finish(state, "Disclosure played outside the model. The call is waiting for one keypad digit.");
+          }
+          case "DTMF": {
+            const voice = state.voiceSession;
+            if (!voice || voice.phase !== "waiting for keypad consent") return reject(state, "The call is not waiting for keypad consent.");
+            if (action.digits === "1") {
+              voice.perCallConsent = "granted";
+              voice.consentAt = "2026-09-01T12:05:00.000Z";
+              voice.phase = "consent granted";
+              audit(state, "Per-call keypad consent recorded", "Press 1; OpenAI may connect now.");
+              return finish(state, "Consent granted. No audio reached OpenAI before this point.");
+            }
+            voice.perCallConsent = action.digits === "2" ? "declined" : "timed out";
+            voice.phase = "ended without AI";
+            createManualTask(state, action.digits === "2" ? "Contractor declined AI processing." : "No keypad consent response.");
+            return finish(state, "No consent: OpenAI stayed disconnected, the call ended, and booking stayed blocked.");
+          }
+          case "CONNECT_AI": {
+            const voice = state.voiceSession;
+            if (!voice || voice.perCallConsent !== "granted" || state.voiceEnrollment !== "active") {
+              return reject(state, "OpenAI audio requires active enrollment and this call’s Press 1 consent.");
+            }
+            voice.openAiConnected = true;
+            voice.phase = "post-consent AI conversation";
+            audit(state, "OpenAI Realtime connected", "Connection occurred only after Press 1.");
+            return finish(state, "The bounded voice agent can discuss only the approved price and timing authority.");
+          }
+          case "TRANSCRIPT": {
+            const voice = state.voiceSession;
+            if (!voice?.openAiConnected || voice.perCallConsent !== "granted") return reject(state, "Transcript text is post-consent only.");
+            voice.transcript.push({ party: action.party, text: action.text });
+            return finish(state, "One post-consent transcript line was retained for this controlled test.");
+          }
+          case "OUTCOME": {
+            const voice = state.voiceSession;
+            if (!voice?.openAiConnected || voice.perCallConsent !== "granted") return reject(state, "A model outcome requires the consented call.");
+            voice.outcome = action.outcome;
+            if (action.outcome !== "confirmed") {
+              voice.phase = "ended for manager follow-up";
+              createManualTask(state, action.outcome === "requested_change"
+                ? "Contractor requested different terms."
+                : action.outcome === "ambiguous"
+                  ? "The contractor result was ambiguous."
+                  : "The contractor did not confirm the approved terms.");
+              return finish(state, "The contractor did not give an exact matching confirmation; nothing booked.");
+            }
+            if (!action.finalWindow || !isInside(action.finalWindow, state.approval?.managerWindow ?? "") ||
+              !isInside(action.finalWindow, state.tenantAccess?.window ?? "")) {
+              voice.phase = "ended for manager follow-up";
+              createManualTask(state, "The confirmed time was outside the approved timing bounds.");
+              return finish(state, "The proposed final time did not fit both approved windows; nothing booked.");
+            }
+            voice.phase = "confirmed";
+            state.contractorConfirmation = {
+              id: `voice-confirmation:${state.approval.id}`,
+              source: "consented voice outcome",
+              proposalId: state.proposal.id,
+              approvalId: state.approval.id,
+              contractorAlias: state.proposal.contractorAlias,
+              providerKey: voice.providerKey,
+              consentAt: voice.consentAt,
+              finalWindow: action.finalWindow
+            };
+            audit(state, "Contractor confirmation recorded", "Structured evidence is bound to this approval, call, proposal, consent, and final slot.");
+            settleBooking(state);
+            return finish(state, "All current gates matched. Fix This booked once and prepared one tenant confirmation text automatically.");
+          }
+          case "WITHDRAW_CONSENT": {
+            const voice = state.voiceSession;
+            if (!voice || voice.perCallConsent !== "granted") {
+              return reject(state, "There is no active consented call to withdraw from.");
+            }
+            state.voiceEnrollment = "withdrawn";
+            voice.perCallConsent = "withdrawn";
+            voice.phase = "consent withdrawn";
+            voice.openAiConnected = false;
+            voice.outcome = null;
+            voice.transcript = [];
+            voice.transcriptDeleted = true;
+            state.contractorConfirmation = null;
+            createManualTask(state, "Contractor withdrew voice consent; transcript deleted and future voice calls blocked.");
+            audit(state, "Consent withdrawal enforced", "Transcript deleted immediately; no raw audio existed.");
+            return finish(state, "Withdrawal stopped AI processing, deleted the transcript, and blocked booking and future voice calls.");
+          }
+          case "CALL_UNREACHABLE": {
+            if (!state.voiceSession) return reject(state, "There is no provider-accepted call.");
+            state.voiceSession.phase = "unreachable";
+            createManualTask(state, "Contractor was busy, unreachable, or the accepted call failed.");
+            return finish(state, "The consumed call approval cannot redial automatically; manager follow-up is required.");
+          }
+          case "DISPATCH_SMS": {
+            const sms = smsEffect(state);
+            if (!sms || !["planned", "retryable"].includes(sms.status)) return reject(state, "No booking confirmation text is ready.");
+            sms.status = "dispatching";
+            sms.attempts += 1;
+            return finish(state, "The one saved tenant confirmation is awaiting the provider result.");
+          }
+          case "SMS_ACCEPTED": {
+            const sms = smsEffect(state);
+            if (!sms || sms.status !== "dispatching" || !state.appointment) return reject(state, "No booked visit has a dispatching confirmation text.");
+            sms.status = "succeeded";
+            sms.providerKey = "provider-message-…01c3";
+            state.appointment.notificationEffectKey = sms.key;
+            audit(state, "Tenant booking confirmation accepted by provider", "Exactly one saved message record succeeded.");
+            return finish(state, "The provider accepted the one saved tenant booking confirmation record.");
+          }
+          case "RESET": {
+            const replayMarkers = [...new Set([...state.replayMarkers, ...state.handledCallbacks.map((id) => `hash:${id}`)])];
+            const enrollment = state.voiceEnrollment;
+            const fresh = initialState();
+            fresh.factsRevision = 0;
+            fresh.contentState = "fresh journey after controlled reset";
+            fresh.proposal = null;
+            fresh.tenantAccess = null;
+            fresh.voiceEnrollment = enrollment;
+            fresh.replayMarkers = replayMarkers;
+            fresh.lastOutcome = "Controlled reset deleted case content and transcript; opt-out/withdrawal and content-free replay markers survived.";
+            return fresh;
+          }
+          default:
+            return reject(state, `Unknown event ${action.type}.`);
+        }
+      };
+
+      const invariants = (state) => {
+        const problems = [];
+        const keys = state.effects.map((item) => item.key);
+        if (new Set(keys).size !== keys.length) problems.push("duplicate call or text record");
+        if (state.effects.filter((item) => item.type === "contractor_call").length > 1) problems.push("more than one contractor call record");
+        if (state.effects.filter((item) => item.type === "tenant_booking_sms").length > 1) problems.push("more than one tenant booking text record");
+        if (state.rawAudioStored) problems.push("raw call audio was stored");
+        if (state.voiceSession?.openAiConnected && state.voiceSession.perCallConsent !== "granted") problems.push("OpenAI connected without per-call consent");
+        if (state.voiceSession?.transcript.length && state.voiceSession.perCallConsent !== "granted") problems.push("transcript exists without current consent");
+        if (state.voiceEnrollment === "withdrawn" && state.voiceSession?.transcript.length) problems.push("transcript survived withdrawal");
+        if (state.contractorConfirmation && state.voiceSession?.outcome !== "confirmed") problems.push("confirmation exists without an exact confirmed outcome");
+        if (state.appointment && !matchingBookingFacts(state)) problems.push("appointment exists without all current matching gates");
+        if (smsEffect(state)?.status === "succeeded" && !state.appointment) problems.push("tenant booking text succeeded without an appointment");
+        if (callEffect(state)?.target && callEffect(state).target !== "contractor") problems.push("call target was not the allowlisted contractor role");
+        return problems;
+      };
+
+      const run = (actions) => actions.reduce(reduce, initialState());
+      return { initialState, reduce, run, invariants, windows: { manager: MANAGER_WINDOW, tenant: TENANT_WINDOW, final: FINAL_WINDOW } };
+    })();
+  </script>
+
+  <script>
+    const { windows } = VoiceBookingModel;
+    const approvedCall = [
+      { type: "APPROVE" },
+      { type: "DISPATCH_CALL" },
+      { type: "CALL_START_ACCEPTED", callbackId: "twilio:start:1" },
+      { type: "SERVE_DISCLOSURE", callbackId: "twilio:disclosure:1" }
+    ];
+    const consentedCall = [
+      ...approvedCall,
+      { type: "DTMF", digits: "1", callbackId: "twilio:dtmf:1" },
+      { type: "CONNECT_AI", callbackId: "openai:incoming:1" }
+    ];
+    const completeBooking = [
+      ...consentedCall,
+      { type: "TRANSCRIPT", party: "agent", text: "Can you confirm the approved $160.50 visit between 2:30 and 3:30?" },
+      { type: "TRANSCRIPT", party: "contractor", text: "Yes, I confirm that exact visit." },
+      { type: "OUTCOME", outcome: "confirmed", finalWindow: windows.final, callbackId: "openai:outcome:1" },
+      { type: "DISPATCH_SMS" },
+      { type: "SMS_ACCEPTED", callbackId: "twilio:sms:1" }
+    ];
+
+    const scenarios = [
+      {
+        id: "complete",
+        label: "Complete booking",
+        question: "Can one approval produce one consented call, one appointment, and one tenant text?",
+        actions: completeBooking,
+        result: "One provider-accepted call consumed the one-call authority. Press 1 came before OpenAI, the exact final slot fit both windows, and one booking text succeeded.",
+        pass: (state) => Boolean(state.appointment && state.contractorConfirmation && state.effects.length === 2 && state.effects.every((item) => item.status === "succeeded"))
+      },
+      {
+        id: "decline",
+        label: "Press 2",
+        question: "Does a keypad refusal keep audio away from OpenAI and stop booking?",
+        actions: [...approvedCall, { type: "DTMF", digits: "2", callbackId: "twilio:dtmf:decline" }],
+        result: "OpenAI never connected. The call ended with one manual task and no contractor confirmation, appointment, or tenant booking text.",
+        pass: (state) => !state.voiceSession.openAiConnected && state.voiceSession.perCallConsent === "declined" && state.manualTasks.length === 1 && !state.appointment && !state.contractorConfirmation
+      },
+      {
+        id: "timeout",
+        label: "Consent timeout",
+        question: "Does silence at the consent gate end without AI processing?",
+        actions: [...approvedCall, { type: "DTMF", callbackId: "twilio:dtmf:timeout" }],
+        result: "No keypad consent meant no OpenAI connection. Fix This created one manager follow-up task and did not book.",
+        pass: (state) => state.voiceSession.perCallConsent === "timed out" && !state.voiceSession.openAiConnected && state.manualTasks.length === 1 && !state.appointment
+      },
+      {
+        id: "withdrawal",
+        label: "Consent withdrawn",
+        question: "Does withdrawal stop AI, delete the transcript, and persist across reset?",
+        actions: [
+          ...consentedCall,
+          { type: "TRANSCRIPT", party: "contractor", text: "Before we continue..." },
+          { type: "WITHDRAW_CONSENT", callbackId: "openai:withdraw:1" },
+          { type: "RESET" }
+        ],
+        result: "The transcript was deleted immediately. Reset kept the voice withdrawal and replay markers while deleting the repair content.",
+        pass: (state) => state.voiceEnrollment === "withdrawn" && state.voiceSession === null && state.contentState.includes("fresh journey") && state.replayMarkers.length > 0
+      },
+      {
+        id: "requested-change",
+        label: "Different terms",
+        question: "Does a requested price or time change return to the manager instead of booking?",
+        actions: [...consentedCall, { type: "OUTCOME", outcome: "requested_change", callbackId: "openai:outcome:change" }],
+        result: "Different terms produced a manual contact task. They did not become confirmation evidence or an appointment.",
+        pass: (state) => state.voiceSession.outcome === "requested_change" && state.manualTasks.length === 1 && !state.contractorConfirmation && !state.appointment
+      },
+      {
+        id: "ambiguous",
+        label: "Ambiguous answer",
+        question: "Does an unclear contractor answer fail closed?",
+        actions: [...consentedCall, { type: "OUTCOME", outcome: "ambiguous", callbackId: "openai:outcome:ambiguous" }],
+        result: "An ambiguous answer created manual follow-up and no booking evidence.",
+        pass: (state) => state.voiceSession.outcome === "ambiguous" && state.manualTasks.length === 1 && !state.contractorConfirmation && !state.appointment
+      },
+      {
+        id: "known-failure",
+        label: "Known provider failure",
+        question: "Can a failure before provider acceptance retry without creating a second call record?",
+        actions: [
+          { type: "APPROVE" }, { type: "DISPATCH_CALL" }, { type: "CALL_START_KNOWN_FAILURE" },
+          { type: "DISPATCH_CALL" }, { type: "CALL_START_ACCEPTED", callbackId: "twilio:start:retry" }
+        ],
+        result: "The same call record retried after a known pre-acceptance failure. It used two attempts but consumed one approval only once.",
+        pass: (state) => state.effects.length === 1 && state.effects[0].attempts === 2 && state.effects[0].status === "succeeded" && state.approval.callsConsumed === 1
+      },
+      {
+        id: "accepted-call-failure",
+        label: "Accepted call fails",
+        question: "Does a busy, unreachable, or failed accepted call require fresh manager action?",
+        actions: [...approvedCall, { type: "CALL_UNREACHABLE", callbackId: "twilio:status:failed" }],
+        result: "The provider had already accepted the dial, so the call authority stayed consumed. Fix This created one manual task and did not redial or book.",
+        pass: (state) => state.approval.callsConsumed === 1 && state.voiceSession.phase === "unreachable" && state.manualTasks.length === 1 && !state.appointment
+      },
+      {
+        id: "unknown-result",
+        label: "Unknown provider result",
+        question: "Does an uncertain start block retry until provider reconciliation proves absence?",
+        actions: [
+          { type: "APPROVE" }, { type: "DISPATCH_CALL" }, { type: "CALL_START_UNKNOWN" },
+          { type: "DISPATCH_CALL" }, { type: "RECONCILE_ABSENT" }, { type: "DISPATCH_CALL" },
+          { type: "CALL_START_ACCEPTED", callbackId: "twilio:start:after-reconcile" }
+        ],
+        result: "The early retry was rejected. After reconciliation proved no call existed, the same record retried and consumed the approval once.",
+        pass: (state) => state.effects.length === 1 && state.effects[0].attempts === 2 && state.effects[0].status === "succeeded" && state.approval.callsConsumed === 1
+      },
+      {
+        id: "duplicates",
+        label: "Duplicate callbacks",
+        question: "Can repeated Twilio and OpenAI callbacks avoid duplicate effects?",
+        actions: [
+          { type: "APPROVE" }, { type: "DISPATCH_CALL" },
+          { type: "CALL_START_ACCEPTED", callbackId: "twilio:start:duplicate" },
+          { type: "CALL_START_ACCEPTED", callbackId: "twilio:start:duplicate" },
+          { type: "SERVE_DISCLOSURE", callbackId: "twilio:disclosure:duplicate" },
+          { type: "SERVE_DISCLOSURE", callbackId: "twilio:disclosure:duplicate" },
+          { type: "DTMF", digits: "1", callbackId: "twilio:dtmf:duplicate" },
+          { type: "DTMF", digits: "1", callbackId: "twilio:dtmf:duplicate" },
+          { type: "CONNECT_AI", callbackId: "openai:incoming:duplicate" },
+          { type: "CONNECT_AI", callbackId: "openai:incoming:duplicate" },
+          { type: "OUTCOME", outcome: "confirmed", finalWindow: windows.final, callbackId: "openai:outcome:duplicate" },
+          { type: "OUTCOME", outcome: "confirmed", finalWindow: windows.final, callbackId: "openai:outcome:duplicate" },
+          { type: "DISPATCH_SMS" },
+          { type: "SMS_ACCEPTED", callbackId: "twilio:sms:duplicate" },
+          { type: "SMS_ACCEPTED", callbackId: "twilio:sms:duplicate" }
+        ],
+        result: "Six duplicate callbacks were ignored. The saved case still contains one call, one confirmation, one appointment, and one tenant text.",
+        pass: (state) => state.duplicateCallbacksIgnored === 6 && state.effects.length === 2 && Boolean(state.appointment) && state.effects.every((item) => item.status === "succeeded")
+      },
+      {
+        id: "reset",
+        label: "Controlled reset",
+        question: "Does reset delete a retained post-consent transcript without clearing replay protection?",
+        actions: [
+          ...consentedCall,
+          { type: "TRANSCRIPT", party: "contractor", text: "This line must not survive reset." },
+          { type: "RESET" }
+        ],
+        result: "Reset removed the repair content and transcript, started a fresh journey, and retained only content-free callback replay markers.",
+        pass: (state) => state.voiceEnrollment === "active" && state.voiceSession === null && state.contentState.includes("fresh journey") && state.replayMarkers.length > 0
+      },
+      {
+        id: "changed-facts",
+        label: "Facts changed",
+        question: "Does a changed timing window clear approval before the provider sees a call?",
+        actions: [{ type: "APPROVE" }, { type: "CHANGE_FACTS" }, { type: "DISPATCH_CALL" }],
+        result: "The old approval was cleared and its unsent call record was superseded. A fresh manager decision is required.",
+        pass: (state) => !state.approval && state.effects.length === 1 && state.effects[0].status === "superseded" && !state.voiceSession
+      }
+    ];
+
+    const freeActions = [
+      ["Start clean", "START_CLEAN"],
+      ["Manager approves one call", "APPROVE"],
+      ["Worker sends saved call", "DISPATCH_CALL"],
+      ["Provider accepts call", "CALL_START_ACCEPTED"],
+      ["Play fixed disclosure", "SERVE_DISCLOSURE"],
+      ["Contractor presses 1", "DTMF_1"],
+      ["Contractor presses 2", "DTMF_2"],
+      ["Consent times out", "DTMF_TIMEOUT"],
+      ["Connect post-consent AI", "CONNECT_AI"],
+      ["Record exact confirmation", "OUTCOME_CONFIRMED"],
+      ["Record requested change", "OUTCOME_CHANGE"],
+      ["Withdraw consent", "WITHDRAW_CONSENT"],
+      ["Send tenant confirmation", "DISPATCH_SMS"],
+      ["Provider accepts tenant text", "SMS_ACCEPTED"],
+      ["Change reviewed timing", "CHANGE_FACTS"],
+      ["Controlled reset", "RESET"]
+    ];
+
+    let state = VoiceBookingModel.initialState();
+    let activeScenario = null;
+    let freeCallback = 0;
+    const safe = (value) => String(value ?? "—").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+    const yesNo = (value) => value ? "Yes" : "No";
+    const gate = (value, label) => `<div class="gate ${value ? "ok" : ""}"><span class="dot"></span>${safe(label)}</div>`;
+    const status = (value) => `<span class="pill ${safe(value)}">${safe(value)}</span>`;
+    const shortWindow = (value) => value ? value.replaceAll("2026-09-01T", "").replaceAll(":00.000Z", " UTC") : "—";
+
+    const table = (headings, rows, empty) => rows.length
+      ? `<div class="scroll"><table><thead><tr>${headings.map((heading) => `<th>${safe(heading)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`
+      : `<p class="empty">${safe(empty)}</p>`;
+
+    const render = () => {
+      const problems = VoiceBookingModel.invariants(state);
+      const voice = state.voiceSession;
+      const call = state.effects.find((item) => item.type === "contractor_call");
+      const sms = state.effects.find((item) => item.type === "tenant_booking_sms");
+      document.querySelector("#last-change").textContent = state.lastOutcome;
+      document.querySelector("#state").innerHTML = `
+        <article class="card">
+          <h3>Manager authority</h3>
+          <span class="value">${state.approval ? "One call approved" : "No active approval"}</span>
+          <dl><dt>Stored agreement price</dt><dd>${state.proposal ? "$160.50" : "—"}</dd><dt>Calls allowed</dt><dd>${state.approval?.callsAuthorized ?? 0}</dd><dt>Calls consumed</dt><dd>${state.approval?.callsConsumed ?? 0}</dd></dl>
+        </article>
+        <article class="card">
+          <h3>Consent gate</h3>
+          <span class="value">${safe(voice?.phase ?? "No call")}</span>
+          <dl><dt>Fixed disclosure</dt><dd>${yesNo(voice?.disclosureServed)}</dd><dt>Press 1 consent</dt><dd>${safe(voice?.perCallConsent ?? "—")}</dd><dt>OpenAI connected</dt><dd>${yesNo(voice?.openAiConnected)}</dd><dt>Raw audio stored</dt><dd>${yesNo(state.rawAudioStored)}</dd></dl>
+        </article>
+        <article class="card">
+          <h3>Required before booking</h3>
+          <div class="gates">${gate(state.proposal, "Current contractor proposal")}${gate(state.tenantAccess, "Tenant access authorization")}${gate(state.approval, "Property-manager approval")}${gate(state.contractorConfirmation, "Consented contractor confirmation")}${gate(state.appointment, "Appointment")}</div>
+        </article>
+        <article class="card">
+          <h3>Result</h3>
+          <span class="value">${state.appointment ? "Booked once" : "Not booked"}</span>
+          <dl><dt>Call record</dt><dd>${call ? safe(call.status) : "none"}</dd><dt>Tenant text</dt><dd>${sms ? safe(sms.status) : "none"}</dd><dt>Duplicates ignored</dt><dd>${state.duplicateCallbacksIgnored}</dd><dt>Replay markers</dt><dd>${state.replayMarkers.length}</dd></dl>
+        </article>`;
+      const invariant = document.querySelector("#invariants");
+      invariant.className = `invariant${problems.length ? " fail" : ""}`;
+      invariant.textContent = problems.length
+        ? `Safety check failed: ${problems.join("; ")}.`
+        : "Safety checks pass: aliases only, no raw audio, no pre-consent OpenAI, no duplicate effect record, and no appointment before every current gate matches.";
+      document.querySelector("#effects").innerHTML = table(
+        ["Saved action", "Target", "Tries", "Status"],
+        state.effects.map((item) => `<tr><td><strong>${safe(item.purpose)}</strong><br><code>${safe(item.key)}</code></td><td>${safe(item.target)}</td><td>${item.attempts}</td><td>${status(item.status)}</td></tr>`),
+        "No provider action has been planned."
+      );
+      document.querySelector("#tasks").innerHTML = table(
+        ["Reason", "Status"],
+        state.manualTasks.map((task) => `<tr><td>${safe(task.reason)}</td><td>${safe(task.status)}</td></tr>`),
+        "No manager follow-up is required."
+      );
+      document.querySelector("#transcript").innerHTML = voice?.transcript.length
+        ? table(["Speaker", "Post-consent text"], voice.transcript.map((line) => `<tr><td>${safe(line.party)}</td><td>${safe(line.text)}</td></tr>`), "")
+        : `<p class="empty">${voice?.transcriptDeleted ? "Transcript deleted immediately." : "No post-consent transcript is stored."}</p>`;
+      document.querySelector("#audit").innerHTML = table(
+        ["Event", "Detail"],
+        state.audit.map((event) => `<tr><td>${safe(event.label)}</td><td>${safe(event.detail)}</td></tr>`),
+        "No controlled-live event has occurred."
+      );
+    };
+
+    const runScenario = (scenario) => {
+      activeScenario = scenario;
+      state = VoiceBookingModel.run(scenario.actions);
+      const problems = VoiceBookingModel.invariants(state);
+      const passed = scenario.pass(state) && problems.length === 0;
+      document.querySelectorAll("[role=tab]").forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.scenario === scenario.id)));
+      document.querySelector("#scenario").innerHTML = `
+        <div><p class="eyebrow">${safe(scenario.label)}</p><h2>${safe(scenario.question)}</h2><p>${safe(scenario.result)}</p></div>
+        <div class="result ${passed ? "pass" : "fail"}"><strong>${passed ? "Check passed" : "Check failed"}</strong>${passed ? "The saved state matches the expected boundary." : safe(problems.join("; ") || "The final state did not match the expected result.")}</div>`;
+      render();
+    };
+
+    document.querySelector("#scenario-tabs").innerHTML = scenarios.map((scenario) =>
+      `<button type="button" class="tab" role="tab" aria-selected="false" data-scenario="${safe(scenario.id)}">${safe(scenario.label)}</button>`
+    ).join("");
+    document.querySelectorAll("[data-scenario]").forEach((tab) => tab.addEventListener("click", () => runScenario(scenarios.find((scenario) => scenario.id === tab.dataset.scenario))));
+
+    const freeAction = (name) => {
+      const callbackId = `free:${++freeCallback}:${name}`;
+      const actions = {
+        APPROVE: { type: "APPROVE" },
+        DISPATCH_CALL: { type: "DISPATCH_CALL" },
+        CALL_START_ACCEPTED: { type: "CALL_START_ACCEPTED", callbackId },
+        SERVE_DISCLOSURE: { type: "SERVE_DISCLOSURE", callbackId },
+        DTMF_1: { type: "DTMF", digits: "1", callbackId },
+        DTMF_2: { type: "DTMF", digits: "2", callbackId },
+        DTMF_TIMEOUT: { type: "DTMF", callbackId },
+        CONNECT_AI: { type: "CONNECT_AI", callbackId },
+        OUTCOME_CONFIRMED: { type: "OUTCOME", outcome: "confirmed", finalWindow: windows.final, callbackId },
+        OUTCOME_CHANGE: { type: "OUTCOME", outcome: "requested_change", callbackId },
+        WITHDRAW_CONSENT: { type: "WITHDRAW_CONSENT", callbackId },
+        DISPATCH_SMS: { type: "DISPATCH_SMS" },
+        SMS_ACCEPTED: { type: "SMS_ACCEPTED", callbackId },
+        CHANGE_FACTS: { type: "CHANGE_FACTS" },
+        RESET: { type: "RESET" }
+      };
+      activeScenario = null;
+      document.querySelectorAll("[role=tab]").forEach((tab) => tab.setAttribute("aria-selected", "false"));
+      if (name === "START_CLEAN") state = VoiceBookingModel.initialState();
+      else state = VoiceBookingModel.reduce(state, actions[name]);
+      document.querySelector("#scenario").innerHTML = `<div><p class="eyebrow">Free play</p><h2>Change one saved event at a time</h2><p>Use the controls below in any order. The model rejects events that do not have the required authority or prior state.</p></div><div class="result"><strong>Manual check</strong>Read the saved case and safety result below.</div>`;
+      render();
+    };
+
+    document.querySelector("#actions").innerHTML = freeActions.map(([label, name]) => `<button type="button" class="action" data-action="${safe(name)}">${safe(label)}</button>`).join("");
+    document.querySelectorAll("[data-action]").forEach((button) => button.addEventListener("click", () => freeAction(button.dataset.action)));
+    document.querySelector("#scenario").innerHTML = `<div><p class="eyebrow">Ready</p><h2>Pick any check above</h2><p>Each check resets this page to the same manager-ready test repair, then runs the full path once.</p></div><div class="result"><strong>No provider access</strong>This file is self-contained and uses only in-memory test state.</div>`;
+    render();
+  </script>
+</body>
+</html>

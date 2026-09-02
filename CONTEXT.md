@@ -16,6 +16,10 @@ The always-on service that receives tenant texts, gathers permitted information,
 
 The staff capability that reviews repair records, receives agent updates, approves cost, and directs the repair agent. A staff user may hold this capability together with organization administration.
 
+## Decision desk
+
+The accepted information hierarchy for the authenticated property-manager dashboard: the prepared contractor action and human decision come first, with photo evidence, tenant conversation, and audit history beside them. It is the manager control plane for a repair case, not a separate source of truth.
+
 ## Organization administrator
 
 The staff capability that manages buildings, staff access, contractor agreements, and organization policy. It is a permission set, not a requirement for a separate person from the property manager.

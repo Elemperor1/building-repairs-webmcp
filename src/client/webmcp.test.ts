@@ -15,7 +15,7 @@ it("registers the public booking workflow without a manager-approval tool", asyn
   vi.stubGlobal("document", { modelContext: { registerTool } });
   vi.stubGlobal("navigator", {});
 
-  useRepairWebMcp({ cases: [], onChanged: () => undefined });
+  useRepairWebMcp({ cases: [], controlledLiveMode: false, onChanged: () => undefined });
   await vi.waitFor(() => expect(registerTool).toHaveBeenCalledTimes(12));
 
   const names = registerTool.mock.calls.map(([tool]) => tool.name as string);
@@ -31,4 +31,21 @@ it("registers the public booking workflow without a manager-approval tool", asyn
       .filter((name) => name !== "book_approved_visit")
       .some((name) => name.includes("approv")),
   ).toBe(false);
+});
+
+it("limits controlled-live WebMCP to shared-case inspection and contractor preparation", async () => {
+  const registerTool = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("document", { modelContext: { registerTool } });
+  vi.stubGlobal("navigator", {});
+
+  useRepairWebMcp({ cases: [], controlledLiveMode: true, onChanged: () => undefined });
+  await vi.waitFor(() => expect(registerTool).toHaveBeenCalledTimes(5));
+
+  expect(registerTool.mock.calls.map(([tool]) => tool.name as string)).toEqual([
+    "list_open_repairs",
+    "get_repair_case",
+    "get_contractor_path",
+    "propose_preferred_contractor_visit",
+    "record_tenant_access_authorization",
+  ]);
 });

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { isDemoMode } from "./demo.js";
 import { repairStore } from "./store.js";
 
@@ -8,40 +9,48 @@ const twilioConfigured = () =>
       process.env.TWILIO_PHONE_NUMBER,
   );
 
-export const sendText = async (to: string, body: string, caseId?: string) => {
-  const existing = caseId ? repairStore.findOutbox(caseId, body) : undefined;
-  if (existing) return { delivery: existing.delivery, message: existing };
+export class KnownTextDeliveryFailure extends Error {}
 
+export const deliverText = async (to: string, body: string) => {
   if (isDemoMode()) {
-    const message = repairStore.addOutbox(to, body, "demo_outbox", caseId);
-    return { delivery: "demo_outbox" as const, message };
+    return { delivery: "demo_outbox" as const, providerId: `demo:${randomUUID()}` };
   }
 
   if (!twilioConfigured()) {
-    const message = repairStore.addOutbox(to, body, "local_outbox", caseId);
-    return { delivery: "local_outbox" as const, message };
+    return { delivery: "local_outbox" as const, providerId: `local:${randomUUID()}` };
   }
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID as string;
   const authToken = process.env.TWILIO_AUTH_TOKEN as string;
   const from = process.env.TWILIO_PHONE_NUMBER as string;
-  const payload = new URLSearchParams({ To: to, From: from, Body: body });
   const response = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
     {
       method: "POST",
+      signal: AbortSignal.timeout(10_000),
       headers: {
         Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: payload,
+      body: new URLSearchParams({ To: to, From: from, Body: body }),
     },
   );
 
   if (!response.ok) {
-    throw new Error(`Twilio rejected the message (${response.status}).`);
+    const error = `Twilio rejected the message (${response.status}).`;
+    if (response.status < 500) throw new KnownTextDeliveryFailure(error);
+    throw new Error(error);
   }
+  const result = (await response.json()) as { sid?: string };
+  if (!result.sid) throw new Error("Twilio accepted the request without a message identifier.");
+  return { delivery: "twilio" as const, providerId: result.sid };
+};
 
-  const message = repairStore.addOutbox(to, body, "twilio", caseId);
-  return { delivery: "twilio" as const, message };
+export const sendText = async (to: string, body: string, caseId?: string) => {
+  const existing = caseId ? repairStore.findOutbox(caseId, body) : undefined;
+  if (existing) return { delivery: existing.delivery, message: existing };
+
+  const { delivery } = await deliverText(to, body);
+  const message = repairStore.addOutbox(to, body, delivery, caseId);
+  return { delivery, message };
 };
