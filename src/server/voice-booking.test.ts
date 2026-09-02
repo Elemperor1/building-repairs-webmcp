@@ -705,6 +705,7 @@ describe("controlled-live consented voice booking", () => {
       "https://api.openai.com/v1/realtime/calls/rtc_openai_1/hangup",
     ]);
     expect(requestBodies[0]).toContain("$160.50");
+    expect(JSON.parse(requestBodies[0]!)).toMatchObject({ parallel_tool_calls: false });
     expect(sent.some((value) => value.includes("response.create"))).toBe(true);
     expect(wakes).toEqual([caseId]);
     expect(closes).toBe(1);

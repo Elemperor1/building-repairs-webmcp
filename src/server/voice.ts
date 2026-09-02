@@ -174,6 +174,7 @@ export const createOpenAiVoiceHandler = ({
       await openai.realtime.calls.accept(event.data.call_id, {
         type: "realtime",
         model: "gpt-realtime-2.1",
+        parallel_tool_calls: false,
         instructions,
         output_modalities: ["audio"],
         audio: {
