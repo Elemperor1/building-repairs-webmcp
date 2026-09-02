@@ -720,6 +720,69 @@ describe("controlled-live consented voice booking", () => {
     });
   });
 
+  it("records a non-confirmed OpenAI outcome when its final window is omitted", async () => {
+    const callSid = "CA27272727272727272727272727272727";
+    const { caseId } = prepareStartedCall(callSid);
+    repairStore.recordVoiceDisclosure(callSid, "disclosure:openai-omitted-window");
+    repairStore.recordVoiceConsent(callSid, "consent:openai-omitted-window", "granted");
+    repairStore.claimVoiceSipBridge(callSid);
+    const handlers = new Map<string, (...args: unknown[]) => unknown>();
+    let closes = 0;
+    const socket = {
+      on(event: string, handler: (...args: unknown[]) => unknown) {
+        handlers.set(event, handler);
+        return socket;
+      },
+      send() {},
+      close() {
+        closes += 1;
+      },
+    };
+    const handler = createOpenAiVoiceHandler({
+      env: process.env,
+      unwrap: async () => ({
+        id: "evt_incoming_omitted_window",
+        type: "realtime.call.incoming",
+        data: {
+          call_id: "rtc_openai_omitted_window",
+          sip_headers: [{ name: "x-fix-this-call-sid", value: callSid }],
+        },
+      }),
+      fetch: async () => new Response("{}", { status: 200 }),
+      createSocket: () => socket,
+      scheduleAgentRun: () => undefined,
+    });
+
+    await handler("{}", {});
+    await handlers.get("message")?.(
+      Buffer.from(
+        JSON.stringify({
+          event_id: "evt_outcome_omitted_window",
+          type: "response.done",
+          response: {
+            output: [
+              {
+                type: "function_call",
+                name: "report_call_outcome",
+                call_id: "tool_call_omitted_window",
+                arguments: JSON.stringify({
+                  outcome: "ambiguous",
+                  summary: "The contractor did not confirm every approved term.",
+                }),
+              },
+            ],
+          },
+        }),
+      ),
+    );
+
+    expect(repairStore.get(caseId)).toMatchObject({
+      voiceCall: { outcome: "ambiguous" },
+    });
+    expect(repairStore.get(caseId).appointment).toBeUndefined();
+    expect(closes).toBe(1);
+  });
+
   it("quarantines an ambiguous OpenAI acceptance without retrying it", async () => {
     const callSid = "CA17171717171717171717171717171717";
     const { caseId } = prepareStartedCall(callSid);
