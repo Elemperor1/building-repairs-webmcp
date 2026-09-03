@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import express, { type ErrorRequestHandler } from "express";
+import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { assertDemoSafety, DEMO_CASE_ID, isDemoMode } from "./demo.js";
 import { sendText } from "./sms.js";
@@ -71,6 +72,15 @@ export const createApp = ({ now = () => new Date() }: { now?: () => Date } = {})
   const demoMode = isDemoMode();
   assertDemoSafety();
   const app = express();
+  app.use(
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      limit: 1000,
+      validate: false,
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+  );
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
 

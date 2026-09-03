@@ -18,6 +18,7 @@
   "dependencies": {
     "@mcp-b/webmcp-types": "latest",
     "express": "latest",
+    "express-rate-limit": "^8.7.0",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
