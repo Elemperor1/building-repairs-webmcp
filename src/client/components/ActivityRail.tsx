@@ -30,9 +30,9 @@ export function ActivityRail({ repair, busy, noteFocusToken, onSendNote }: Activ
   };
 
   return (
-    <aside className="activity-rail" aria-label="Repair activity and agent instructions">
+    <aside className="activity-rail" aria-label="Repair updates and notes">
       <section className="rail-section activity-section">
-        <h2>Activity</h2>
+        <h2>Updates</h2>
         <ol className="activity-list">
           {repair.activity.map((event, index) => {
             const waiting = event.label.toLowerCase().includes("waiting");
@@ -68,25 +68,25 @@ export function ActivityRail({ repair, busy, noteFocusToken, onSendNote }: Activ
               ) : (
                 <Clock3 aria-hidden="true" />
               )}
-              {repair.proposal.source === "agreement" ? "Approved agreement" : "External quote"}
+              {repair.proposal.source === "agreement" ? "Contract rate" : "Outside quote"}
             </span>
           </div>
         </section>
       ) : null}
 
       <section className="rail-section agent-note-section">
-        <h2>Agent note</h2>
-        <p>Tell the agent what to do or ask for another option.</p>
+        <h2>Note to Fix This</h2>
+        <p>Share extra context or ask us to try another contractor.</p>
         <form onSubmit={submit}>
           <label className="sr-only" htmlFor="agent-note">
-            Note for the agent
+            Note to Fix This
           </label>
           <textarea
             ref={inputRef}
             id="agent-note"
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder="Type your message to the agent…"
+            placeholder="Write a note…"
             disabled={busy === "manager-note"}
           />
           <button
@@ -94,7 +94,7 @@ export function ActivityRail({ repair, busy, noteFocusToken, onSendNote }: Activ
             type="submit"
             disabled={!note.trim() || busy === "manager-note"}
           >
-            {busy === "manager-note" ? "Sending…" : "Send to agent"}
+            {busy === "manager-note" ? "Sending…" : "Send note"}
           </button>
         </form>
       </section>

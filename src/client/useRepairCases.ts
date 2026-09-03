@@ -24,7 +24,7 @@ export const useRepairCases = () => {
           : nextCases[0]?.id;
       });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load repairs.");
+      setError(reason instanceof Error ? reason.message : "We couldn't load the repairs. Try refreshing.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +65,7 @@ export const useRepairCases = () => {
         setNotice(success);
         return repair;
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : "The action could not be completed.");
+        setError(reason instanceof Error ? reason.message : "We couldn't finish that. Try again.");
         throw reason;
       } finally {
         setBusy(undefined);
@@ -80,9 +80,9 @@ export const useRepairCases = () => {
     try {
       const { caseId } = await api.resetDemo();
       await refresh(caseId);
-      setNotice("Synthetic demo reset to a clean repair.");
+      setNotice("Demo ready for a fresh start.");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The synthetic demo could not be reset.");
+      setError(reason instanceof Error ? reason.message : "We couldn't reset the demo. Try again.");
       throw reason;
     } finally {
       setBusy(undefined);

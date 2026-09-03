@@ -2,23 +2,24 @@
 
 **Repairs without the runaround.**
 
-Fix This is an SMS-first rental-maintenance coordinator. Tenants report what is broken by text, a browser agent can triage the case and prepare a contractor visit through WebMCP, and the property manager approves the cost and booking from one dashboard.
+Tenants text Fix This when something breaks. Fix This gathers the details, lines up the right contractor, and gives the property manager a clear plan to approve.
 
-![Fix This dashboard](docs/design/dashboard-implementation.png)
+Nothing is booked until the tenant confirms access and the contractor accepts the time.
+
+![Fix This dashboard showing a repair waiting for manager approval](docs/design/dashboard-implementation.png)
 
 ## What works
 
-- inbound SMS webhook for JSON test messages and Twilio form payloads
-- one persistent repair record containing messages, access, proposal, approval, appointment, and activity
+- tenant repair reports by text, through either Twilio or the built-in test path
+- one repair record for every message, decision, proposed visit, and appointment
 - local JSON storage with atomic writes
 - real Twilio outbound delivery when credentials are present, with a local outbox fallback for development
-- manager approval gate enforced by the server before booking
-- building-specific preferred contractor agreements with ordered backups and agreed prices
-- auditable contractor-unavailability attempts and server-guarded external fallback
-- responsive property-manager dashboard with a development-only SMS simulator
-- WebMCP tools for listing, reading, triaging, messaging, proposing, and booking approved repairs
+- preferred contractors checked in order, using the building's agreed prices
+- server-enforced checks for manager approval, tenant access, and contractor confirmation
+- a responsive property-manager dashboard with a development-only text-message simulator
+- WebMCP tools that let a browser agent work with the same repairs shown in the dashboard
 
-Manager approval is deliberately not a WebMCP tool. The browser agent can prepare a solution, but the human approves the cost in the dashboard before the booking tool can succeed.
+WebMCP can prepare the visit, but it cannot approve spending. That decision stays with the property manager.
 
 ## Run locally
 
@@ -44,7 +45,7 @@ Start the isolated judge demo with provider credentials unset:
 DEMO_MODE=true npm run dev
 ```
 
-Demo mode uses a separate disposable store, fixed synthetic Pennsylvania identities, an in-app outbox, and an empty voice-call allowlist. The dashboard can reset the shared fixture; startup fails if Twilio, OpenAI voice, or a voice destination is configured.
+Demo mode uses separate sample data and never contacts a real phone. It includes fictional Pennsylvania tenants, buildings, and contractors, and keeps outgoing messages in an in-app outbox. You can reset it from the dashboard. The app refuses to start the demo when live Twilio, OpenAI voice, or voice-destination settings are present.
 
 Without Twilio credentials, outbound texts are recorded at `GET /api/outbox`. Use “Test an incoming text” in the development dashboard to exercise the same webhook path a phone provider uses.
 
@@ -85,11 +86,11 @@ The dashboard registers these tools when the browser exposes the WebMCP producer
 - `record_contractor_confirmation`
 - `book_approved_visit`
 
-The preferred route takes contractor identity and price from the stored agreement. An agent cannot skip the primary agreement, claim a manager requested fallback, or add an external quote before the server authorizes external search.
+Fix This checks a building's preferred contractors in order and uses their agreed prices. The agent cannot skip the first eligible contractor or add an outside quote until the server allows an outside search.
 
-The implementation feature-detects the current `document.modelContext` API and the deprecated `navigator.modelContext` compatibility surface. If neither is present, the dashboard says “Browser agent tools unavailable.” There is no fake connected state and no production polyfill.
+The implementation feature-detects the current `document.modelContext` API and the deprecated `navigator.modelContext` compatibility surface. If neither is present, the dashboard reports that WebMCP is unavailable. It never shows a fake connection or ships a production polyfill.
 
-The current product proves the shared case workflow and browser-agent action surface. A continuously running background agent that reacts to every SMS while no WebMCP-enabled browser session is connected is not yet implemented.
+In this build, browser-agent actions require an open, WebMCP-enabled dashboard. Automatic background handling for every new tenant text is not part of this build.
 
 ## Architecture
 

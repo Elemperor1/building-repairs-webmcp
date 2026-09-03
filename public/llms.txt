@@ -2,7 +2,9 @@
 
 Repairs without the runaround.
 
-Fix This is an SMS-first rental-maintenance coordination dashboard. Tenants report problems by text; a repair agent follows up and proposes a contractor visit; the property manager retains approval and booking control.
+Tenants text Fix This when something breaks. Fix This gathers the details, lines up the right contractor, and gives the property manager a clear plan to approve.
+
+Nothing is booked until the tenant confirms access and the contractor accepts the time. WebMCP lets a browser agent work with the same repairs shown in the dashboard, but spending approval stays with the property manager.
 
 - [Product overview](/)
 - [Health check](/api/health)

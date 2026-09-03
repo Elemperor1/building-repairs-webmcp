@@ -64,7 +64,7 @@ describe("contractor workflow HTTP interface", () => {
         agreementId: "agreement-hawthorn-plumbing-primary",
         contractorName: "Hawthorn Building Services",
         priority: 1,
-        priceBasis: "Agreed emergency call-out and first hour",
+        priceBasis: "Emergency call-out, including the first hour",
         costPence: 14500,
         responseMinutes: 240,
       },
@@ -137,7 +137,7 @@ describe("contractor workflow HTTP interface", () => {
       contractorName: "Hawthorn Building Services",
       contractorPhone: "020 7946 0100",
       costPence: 14500,
-      priceBasis: "Agreed emergency call-out and first hour",
+      priceBasis: "Emergency call-out, including the first hour",
       timeWindow: "Today, 3:30–4:30 pm",
       status: "proposed",
     });
@@ -218,7 +218,7 @@ describe("contractor workflow HTTP interface", () => {
 
     expect(response).toEqual({
       status: 409,
-      body: { error: "Tenant access requires a tenant message from this repair." },
+      body: { error: "Choose a text from Maya to confirm access." },
     });
   });
 
@@ -244,19 +244,18 @@ describe("contractor workflow HTTP interface", () => {
     expect({ missingManager, missingTenantAccess, missingContractorConfirmation }).toEqual({
       missingManager: {
         status: 409,
-        body: { error: "The property manager must approve the proposal before booking." },
+        body: { error: "Approve the contractor and price before booking this visit." },
       },
       missingTenantAccess: {
         status: 409,
         body: {
-          error: "Tenant access must match the current proposal and visit window before booking.",
+          error: "Ask Maya to confirm access for Today, 3:30–4:30 pm.",
         },
       },
       missingContractorConfirmation: {
         status: 409,
         body: {
-          error:
-            "Contractor confirmation must match the current proposal and visit window before booking.",
+          error: "Ask Hawthorn Building Services to confirm Today, 3:30–4:30 pm.",
         },
       },
     });
@@ -353,8 +352,8 @@ describe("contractor workflow HTTP interface", () => {
     expect(body.repair.contractorAttempts).toHaveLength(1);
     expect(body.repair.proposal).toBeUndefined();
     expect(body.repair.activity.at(-1)).toMatchObject({
-      label: "Hawthorn Building Services is unavailable",
-      detail: "No plumber can attend this afternoon. Earliest availability: 27 Aug, 08:00.",
+      label: "Hawthorn Building Services can't make the deadline",
+      detail: "No plumber can attend this afternoon. Next opening: 27 Aug, 08:00.",
     });
   });
 
@@ -365,7 +364,7 @@ describe("contractor workflow HTTP interface", () => {
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
-      error: "Try every eligible approved contractor before external search.",
+      error: "Check every available contractor on the approved list first.",
     });
   });
 
@@ -387,7 +386,7 @@ describe("contractor workflow HTTP interface", () => {
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
-      error: "An approved contractor can still meet the required response time.",
+      error: "An approved contractor can still get there in time.",
     });
   });
 
@@ -404,7 +403,7 @@ describe("contractor workflow HTTP interface", () => {
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
-      error: "Check the next approved contractor before moving to a backup.",
+      error: "Check the next contractor on the approved list before moving to a backup.",
     });
   });
 
@@ -419,7 +418,7 @@ describe("contractor workflow HTTP interface", () => {
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
-      error: "External contractor search must be authorized before adding an external proposal.",
+      error: "Look for another contractor before adding an outside quote.",
     });
   });
 
@@ -445,7 +444,7 @@ describe("contractor workflow HTTP interface", () => {
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({
-      error: "Routine repairs need property-manager instruction before external search.",
+      error: "Ask a property manager before looking beyond the approved list.",
     });
   });
 
@@ -484,7 +483,7 @@ describe("contractor workflow HTTP interface", () => {
     expect(startResponse.body).toMatchObject({
       authorization: {
         requestedByManager: "Priya Shah",
-        reason: "Priya Shah requested external options for this routine repair.",
+        reason: "Priya Shah asked for contractors beyond the approved list.",
         requiredBy: "2026-08-28T12:00:00.000Z",
         searchBrief: {
           trade: "heating",
@@ -494,8 +493,8 @@ describe("contractor workflow HTTP interface", () => {
       },
       repair: {
         activity: expect.arrayContaining([
-          expect.objectContaining({ label: "Priya Shah requested external contractor options" }),
-          expect.objectContaining({ label: "External contractor search started" }),
+          expect.objectContaining({ label: "Priya Shah asked for more contractor options" }),
+          expect.objectContaining({ label: "Looking for another contractor" }),
         ]),
       },
     });

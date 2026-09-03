@@ -15,7 +15,7 @@ export function SmsSimulator({ open, onClose, onSend, demoMode }: SmsSimulatorPr
   const [tenantName, setTenantName] = useState("Jordan");
   const [unit, setUnit] = useState("Flat 5A");
   const [from, setFrom] = useState("+447700900999");
-  const [body, setBody] = useState("The light is off and there is no pooling.");
+  const [body, setBody] = useState("The light is off, and there's no water pooling.");
   const [sending, setSending] = useState(false);
 
   if (!open) return null;
@@ -47,12 +47,12 @@ export function SmsSimulator({ open, onClose, onSend, demoMode }: SmsSimulatorPr
         <header>
           <div>
             <h2 id="sms-simulator-heading">
-              {demoMode ? "Simulate a synthetic message" : "Test an incoming text"}
+              {demoMode ? "Add a demo message" : "Test an incoming text"}
             </h2>
             <p>
               {demoMode
-                ? "Fixed demo identities update the real shared repair without contacting anyone."
-                : "This sends a Twilio-shaped message through the real SMS webhook."}
+                ? "Choose who's replying, then add their message to the shared demo."
+                : "This runs the message through the SMS webhook."}
             </p>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close">
@@ -63,13 +63,13 @@ export function SmsSimulator({ open, onClose, onSend, demoMode }: SmsSimulatorPr
           {demoMode ? (
             <>
               <label>
-                Synthetic sender
+                Send as
                 <select
                   name="demo-sender"
                   value={sender}
                   onChange={(event) => setSender(event.target.value as DemoMessageInput["sender"])}
                 >
-                  <option value="tenant">Maya Chen (demo tenant)</option>
+                  <option value="tenant">Maya Chen</option>
                   <option value="contractor">Three Rivers Demo Plumbing</option>
                 </select>
               </label>
@@ -80,7 +80,7 @@ export function SmsSimulator({ open, onClose, onSend, demoMode }: SmsSimulatorPr
                   checked={includeMedia}
                   onChange={(event) => setIncludeMedia(event.target.checked)}
                 />
-                Attach bundled synthetic bathroom-leak image
+                Add the demo leak photo
               </label>
             </>
           ) : (
@@ -105,7 +105,7 @@ export function SmsSimulator({ open, onClose, onSend, demoMode }: SmsSimulatorPr
             </>
           )}
           <label>
-            Text message
+            Message
             <textarea
               name="message"
               value={body}
@@ -114,7 +114,7 @@ export function SmsSimulator({ open, onClose, onSend, demoMode }: SmsSimulatorPr
             />
           </label>
           <button className="button button--primary" type="submit" disabled={sending}>
-            {sending ? "Sending…" : demoMode ? "Add simulated message" : "Send incoming text"}
+            {sending ? "Sending…" : demoMode ? "Add to conversation" : "Run test message"}
           </button>
         </form>
       </section>

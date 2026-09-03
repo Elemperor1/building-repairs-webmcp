@@ -132,23 +132,23 @@ components:
 
 **Creative North Star: “The Calm Dispatch Desk”**
 
-The interface should feel like a well-run operations desk: quiet enough to think, structured enough to trust, and immediate when a decision is required. It borrows Linear’s operational hierarchy, Stripe Dashboard’s care around consequential actions, and Apple Messages’ familiar conversation rhythm.
+Fix This should feel like a calm, well-run maintenance desk. A manager should see what happened, what needs a decision, and what happens next without digging.
 
-This is a working product surface, not a showcase for AI. Agent work is visible and auditable, but automation never becomes decoration. The layout keeps the repair queue, shared case record, and human approval trail in view.
+The repair stays at the center of the screen, not the automation. Keep its messages, proposed visit, approval, and activity visible together.
 
-The system explicitly rejects the generic SaaS demo named in `PRODUCT.md`: no guided scenarios, fake metrics, marketing language, decorative dashboard furniture, or controls that merely simulate work.
+This is a working dashboard, not a staged AI demo. Do not add fake metrics, guided scenarios, decorative filler, or controls that only look functional.
 
 **Key Characteristics:**
 
-- restrained operational density
-- plain-English hierarchy
-- one obvious decision at a time
-- familiar messaging patterns
-- immediate, quiet feedback
+- clear priorities
+- plain language
+- one decision at a time
+- messages that read like a real conversation
+- quiet, immediate feedback
 
 ## Colors
 
-Near-white work surfaces and cultivated deep green create a calm, serious operations environment. Pale green communicates current selection, safe completion, and familiar agent messages; amber marks attention or required approval; red is reserved for errors and immediate danger.
+Near-white surfaces and deep green keep the dashboard calm and easy to scan. Pale green marks the current selection and completed work; amber calls for attention or approval; red is reserved for errors and immediate danger.
 
 ### Primary
 
@@ -192,7 +192,7 @@ Near-white work surfaces and cultivated deep green create a calm, serious operat
 - **Message** (400, `0.88rem`, 1.5): SMS conversation text.
 - **Label** (680, `0.82rem`, 1.35): field names, actor names, and compact metadata.
 
-**The Ordinary English Rule.** Labels describe exactly what happens: “Approve and book,” “Send Maya a message,” and “Waiting for your approval.” Avoid agent jargon, abstract workflow nouns, and clever headings.
+**The Ordinary English Rule.** Labels name the person's action or the next state: “Approve contractor and price,” “Ask for a change,” “Waiting for your approval,” and, only after every check passes, “Book confirmed visit.” Keep internal terms such as authorization and workflow out of interface copy.
 
 ## Elevation
 
@@ -210,13 +210,13 @@ The product is flat by default. Structure comes from alignment, surface shifts, 
 - **Primary:** Dispatch Green background, white text, and `0 20px` padding.
 - **Secondary:** white surface, one-pixel Dispatch Green border, and green text.
 - **Hover / Focus:** hover deepens or softly tints within 160 ms; focus uses a three-pixel mixed-green outline; pointer-down scales to `0.97` for 120 ms.
-- **Language:** name the irreversible result. Use “Approve and book,” never “Proceed.”
+- **Language:** name the real result. Use “Approve contractor and price” for approval and “Book confirmed visit” only after access and contractor confirmation are recorded. Never combine them into “Approve and book.”
 
 ### Status indicators
 
 - **Style:** compact `8px`-radius label with icon, one-pixel semantic border, and pale semantic background.
 - **State:** amber means a decision is required; green means complete or connected; red means an error or immediate risk.
-- **Proposal source:** use a compact green “Approved agreement” label for stored terms and an amber “External quote” label for fallback pricing.
+- **Proposal source:** use a compact green “Contract rate” label for stored terms and an amber “Outside quote” label for fallback pricing.
 
 ### Cards and containers
 

@@ -10,27 +10,35 @@ The resident reporting the problem. The tenant participates only by SMS and does
 
 ## Repair agent
 
-The always-on service that receives tenant texts, gathers permitted information, updates the repair case, and coordinates contractor booking within explicit human-control boundaries. WebMCP lets a browser agent inspect and direct this same workflow; it is not the only way the repair agent runs.
+Fix This receives tenant texts, asks permitted follow-up questions, updates the repair, and coordinates the contractor visit within the manager's rules. In this repository, a browser agent performs those actions through WebMCP while an enabled dashboard is open. The controlled live demo adds the separate worker defined below.
 
 ## Property manager
 
-The staff capability that reviews repair records, receives agent updates, approves cost, and directs the repair agent. A staff user may hold this capability together with organization administration.
+A staff role that reviews repairs, receives updates, approves costs, and gives Fix This instructions. The same person may also be an organization administrator.
 
 ## Organization administrator
 
-The staff capability that manages buildings, staff access, contractor agreements, and organization policy. It is a permission set, not a requirement for a separate person from the property manager.
+A staff role that manages buildings, staff access, contractor agreements, and organization policy. It may belong to the same person as the property-manager role.
 
 ## Staff user
 
 An invited, multi-factor-authenticated member of a property management organization who holds property-manager capabilities, organization-administrator capabilities, or both.
 
+## Demo operator
+
+The single authenticated person controlling a controlled live demo. A demo operator is not a staff user and does not imply pilot-ready identity or access management.
+
 ## Tenant directory
 
 The organization's verified mapping of trusted tenant phone numbers to buildings and units. A trusted number routes a report but does not prove who authored each message; an unknown number remains quarantined until staff or a safe intake process resolves it.
 
+## Phone binding
+
+A secret-configured association between a fixed communication role and its provider address. The full address is neither repair-case data nor operator-visible identity, and the binding does not authenticate the human using that phone.
+
 ## Property management organization
 
-The invited company operating one or more buildings through one or more staff users. Repair cases, buildings, agreements, and staff access belong to exactly one organization.
+A company that uses Fix This to manage one or more buildings. Its repairs, buildings, contractor agreements, and staff access belong to that organization alone.
 
 ## Contractor proposal
 
@@ -66,7 +74,7 @@ The tenant's explicit confirmation of an access window and permission for the co
 
 ## Booking request
 
-A request sent to the next eligible preferred contractor after the required human approvals exist. It becomes an appointment only when that contractor confirms the offered time.
+A request sent to the next eligible preferred contractor after the property manager approves the contractor and price. It becomes an appointment only when the tenant confirms access and the contractor accepts the offered time.
 
 ## Contractor contact route
 
@@ -74,11 +82,11 @@ The ordered means of contacting a preferred contractor: SMS first when supported
 
 ## Voice calling consent
 
-The contractor's recorded enrollment permission for operational AI/artificial-voice calls plus the affirmative per-call keypad consent required before audio reaches the AI, transcription, or recording. A trusted phone number is not consent.
+The contractor's recorded enrollment permission for operational AI/artificial-voice calls plus the affirmative per-call keypad consent required before audio reaches the AI, transcription, or recording. A per-call refusal applies to that call; withdrawal revokes enrollment for future calls.
 
 ## Voice transcript
 
-The post-consent text record of an AI contractor call. Raw audio is not retained by default; withdrawal ends processing, deletes the call transcript, and preserves only the consent-withdrawal audit event.
+The post-consent text record of an AI contractor call, retained only until withdrawal, controlled live reset, or the live-demo retention ceiling. Raw audio is never retained.
 
 ## Voice call outcome
 
@@ -86,7 +94,7 @@ The auditable result of a contractor call: confirmed, declined, requested change
 
 ## Manual contact task
 
-The dashboard task and manager SMS alert created when automated contractor contact cannot lawfully or reliably continue. It records the reason and requires an authenticated staff user to record the eventual outcome.
+The dashboard task created when automated contractor contact cannot lawfully or reliably continue. It records the reason and requires an authenticated operator to record the eventual outcome; organization policy may add an alert outside the controlled live demo.
 
 ## Voice agent authority
 
@@ -94,7 +102,7 @@ The terms a consented voice agent may discuss or accept. For an approved contrac
 
 ## Contractor confirmation evidence
 
-The source proving that the current contractor accepted the current proposal and visit window. It is either a matching contractor message or a consented voice-call outcome bound to the approved call; transport completion alone is not confirmation.
+The source proving that the current contractor accepted the current proposal and visit window. It is either a matching contractor message or a structured consented voice-call outcome bound to the approved call; transport completion alone is not confirmation, and the transcript need not survive once the outcome is recorded.
 
 ## Agent wake event
 
@@ -114,15 +122,19 @@ A release verified as safe for a small, invite-only United States property-manag
 
 ## Demo mode
 
-An isolated Devpost-facing mode containing a fully configured synthetic Pennsylvania organization, buildings, staff, contractor agreements, policies, and repair cases. It provides controlled reset and simulation paths, cannot read production data or use production messaging credentials, and never sends a real message or call.
+An isolated mode for Devpost judges, preloaded with a fictional Pennsylvania organization, buildings, staff, contractor agreements, policies, and repairs. It can be reset at any time. It cannot read production data, load production messaging credentials, or contact a real person.
 
 ## Controlled live demo
 
-A separate, protected, time-bounded deployment that accepts verified messages only from the allowlisted tenant phone, sends through the configured Twilio number, and may call only the allowlisted contractor phone after call approval. It uses real provider credentials and an always-on worker during the demo window, but it is not a public demo or a pilot-ready release.
+A separate, protected deployment that runs for a limited time under one demo operator. It uses real provider credentials, an always-on worker, and exactly three phone bindings: tenant, messaging service, and contractor. Manager updates stay in the dashboard. This is neither a public demo nor a pilot-ready release.
+
+## Controlled live reset
+
+The demo-operator action that deletes controlled-live case content and starts a fresh journey only when no call, job, or outbound effect is active. It preserves phone bindings, opt-out and withdrawal state, and content-free replay protection until the deployment is destroyed.
 
 ## Manager notification
 
-An agent-generated SMS update that replaces the tenant's need to separately chase property management. It summarizes a repair event or requested decision and directs consequential actions to the authenticated dashboard.
+An update from Fix This shown to the property manager in the dashboard. Outside the controlled live demo, organization policy may also send it by SMS.
 
 ## Photo evidence
 
@@ -134,7 +146,7 @@ The tenant's service-level permission for relevant repair photos to be shared wi
 
 ## Messaging consent
 
-The recorded permission for the repair service to exchange operational SMS and MMS with a tenant or contractor. Opt-out stops non-emergency automated messaging and creates a manual-contact task for property management.
+The recorded permission for the repair service to exchange operational SMS and MMS with a tenant or contractor. Opt-out survives demo reset, stops non-emergency automated messaging, and can be cleared only by a verified opt-in from that phone binding.
 
 ## Organization readiness
 

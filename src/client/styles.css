@@ -1480,7 +1480,7 @@ textarea::placeholder {
   }
 
   .header-actions {
-    gap: var(--space-2);
+    display: none;
   }
 
   .building-picker {

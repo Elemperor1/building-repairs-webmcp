@@ -24,7 +24,7 @@ export function MessagesPanel({ repair, busy, onSend }: MessagesPanelProps) {
 
   return (
     <section className="messages-panel" aria-labelledby="messages-heading">
-      <h2 id="messages-heading">Messages for this repair</h2>
+      <h2 id="messages-heading">Conversation</h2>
       <div className="message-thread" aria-live="polite">
         {visibleMessages.map((item) => (
           <div
@@ -35,24 +35,20 @@ export function MessagesPanel({ repair, busy, onSend }: MessagesPanelProps) {
               {item.party === "tenant"
                 ? repair.tenant.name
                 : item.party === "contractor"
-                  ? repair.proposal?.contractorName ??
-                    (repair.demoFixture ? "Three Rivers Demo Plumbing" : "Contractor")
-                  : "Fix This agent"}
+                  ? "Contractor"
+                  : "Fix This"}
             </span>
             <p>{item.body}</p>
             {item.mediaId === "demo-bathroom-leak" ? (
               <figure className="message-media">
                 <img
                   src="/demo-bathroom-leak.svg"
-                  alt="Synthetic illustration of a bathroom ceiling leak near a light"
+                  alt="Demo illustration of water leaking near a bathroom light"
                 />
-                <figcaption>Bundled synthetic MMS fixture</figcaption>
+                <figcaption>Demo photo</figcaption>
               </figure>
             ) : null}
-            <time dateTime={item.sentAt}>
-              {formatTime(item.sentAt, timeZone)}
-              {item.party === "agent" ? "  ✓✓" : ""}
-            </time>
+            <time dateTime={item.sentAt}>{formatTime(item.sentAt, timeZone)}</time>
           </div>
         ))}
       </div>

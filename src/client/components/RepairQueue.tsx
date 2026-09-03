@@ -13,9 +13,9 @@ interface RepairQueueProps {
 
 const groups: Array<{ status: RepairStatus; label: string }> = [
   { status: "new", label: "New" },
-  { status: "waiting_for_approval", label: "Waiting for approval" },
+  { status: "waiting_for_approval", label: "Needs approval" },
   { status: "approved", label: "Approved" },
-  { status: "scheduled", label: "Scheduled" },
+  { status: "scheduled", label: "Booked" },
 ];
 
 const relativeTime = (value: string) => {
@@ -78,7 +78,7 @@ export function RepairQueue({
         <div className="demo-controls">
           <button className="test-sms-button" type="button" onClick={onOpenSmsSimulator}>
             <MessageSquarePlus aria-hidden="true" />
-            Simulate SMS / MMS
+            Add demo message
           </button>
           <button
             className="test-sms-button"
@@ -87,7 +87,7 @@ export function RepairQueue({
             disabled={resetting}
           >
             <RotateCcw aria-hidden="true" />
-            {resetting ? "Resetting…" : "Reset synthetic demo"}
+            {resetting ? "Starting over…" : "Start demo over"}
           </button>
         </div>
       ) : import.meta.env.DEV ? (

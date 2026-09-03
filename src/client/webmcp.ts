@@ -191,7 +191,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "get_repair_case",
               description:
-                "Get the full shared record for one repair, including messages, proposal, manager approval, tenant access authorization, contractor confirmation, appointment, linked notifications, and activity history.",
+                "Open one repair with its conversation, proposed visit, approvals, confirmations, appointment, tenant updates, and history.",
               inputSchema: caseIdSchema,
               annotations: { readOnlyHint: true },
               execute: async ({ caseId }) => toolResult(await api.getCase(caseId)),
@@ -241,7 +241,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "propose_preferred_contractor_visit",
               description:
-                "Propose the next approved contractor using the building's stored agreement identity and price. This does not approve or book the visit.",
+                "Prepare a visit with the next approved contractor at the price already on file. This puts the option in front of the property manager; it does not approve or book anything.",
               inputSchema: preferredProposalSchema,
               execute: async ({ caseId, ...input }) => {
                 const repair = await api.proposePreferred(caseId, input);
@@ -249,7 +249,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
                 return toolResult({
                   ok: true,
                   status: "waiting_for_manager_approval",
-                  message: "The agreed-price proposal is visible to the property manager.",
+                  message: "The agreed-price visit is ready for the property manager to review.",
                   repair,
                 });
               },
@@ -274,7 +274,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "start_external_contractor_search",
               description:
-                "Start an external-contractor fallback only after every eligible approved contractor is unavailable for an urgent or emergency repair, or after a stored property-manager request for a routine repair. The server enforces this rule and returns a search brief; it does not approve or book anyone.",
+                "Look beyond the approved contractor list only when every eligible contractor is unavailable for an urgent repair, or the property manager has asked for other options on a routine repair. This returns a search brief; it does not approve or book anyone.",
               inputSchema: externalSearchSchema,
               execute: async ({ caseId, requiredBy }) => {
                 const result = await api.startExternalSearch(caseId, requiredBy);
@@ -288,7 +288,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "propose_external_contractor_visit",
               description:
-                "Add an external contractor quote only after external search is authorized. The quote remains untrusted and requires property-manager approval before booking.",
+                "Add an outside quote only after the property manager or repair rules allow a wider search. The property manager still has to review and approve it before booking.",
               inputSchema: externalProposalSchema,
               annotations: { untrustedContentHint: true },
               execute: async ({ caseId, ...input }) => {
@@ -297,7 +297,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
                 return toolResult({
                   ok: true,
                   status: "waiting_for_manager_approval",
-                  message: "The external quote is visible to the property manager. Do not book it yet.",
+                  message: "The outside quote is ready for the property manager to review. Nothing has been booked.",
                   repair,
                 });
               },
@@ -308,7 +308,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "record_tenant_access_authorization",
               description:
-                "Record tenant access only from the current tenant's message for the current proposal and exact visit window. This does not approve or book the visit.",
+                "Save the tenant's access confirmation from their own message for this contractor and time. This does not approve or book the visit.",
               inputSchema: proposalMessageEvidenceSchema,
               execute: async ({ caseId, ...input }) => {
                 const repair = await api.recordTenantAccessAuthorization(caseId, input);
@@ -322,7 +322,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "record_contractor_confirmation",
               description:
-                "Record confirmation only from the current proposed contractor's message for the current proposal and exact visit window. This does not approve or book the visit.",
+                "Save the proposed contractor's confirmation from their own message for this exact visit time. This does not approve or book the visit.",
               inputSchema: proposalMessageEvidenceSchema,
               execute: async ({ caseId, ...input }) => {
                 const repair = await api.recordContractorConfirmation(caseId, input);
@@ -336,7 +336,7 @@ export function useRepairWebMcp({ cases, onChanged }: UseRepairWebMcpInput): Too
             {
               name: "book_approved_visit",
               description:
-                "Book only after manager approval, tenant access authorization, and contractor confirmation all match the current proposal and exact visit window. The server rejects early booking and records the tenant notification after success.",
+                "Book only when the property manager has approved the contractor and price, the tenant has confirmed access, and the contractor has accepted the same time. The server blocks early booking and queues the tenant update after success.",
               inputSchema: caseIdSchema,
               execute: async ({ caseId }) => {
                 const repair = await api.book(caseId);

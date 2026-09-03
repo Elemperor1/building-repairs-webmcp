@@ -17,9 +17,9 @@ interface CaseWorkspaceProps {
 
 const statusCopy: Record<RepairCase["status"], string> = {
   new: "New repair",
-  waiting_for_approval: "Waiting for your approval",
-  approved: "Manager approved",
-  scheduled: "Visit scheduled",
+  waiting_for_approval: "Needs your approval",
+  approved: "Approved",
+  scheduled: "Visit booked",
   closed: "Repair closed",
 };
 

@@ -109,24 +109,31 @@ const messageEvidenceForCurrentProposal = (
   input: { sourceMessageId: string; proposalId: string; timeWindow: string },
   party: "tenant" | "contractor",
 ) => {
-  if (!repair.proposal) throw new Error("There is no current contractor proposal.");
-  const evidenceName = party === "tenant" ? "Tenant access" : "Contractor confirmation";
+  if (!repair.proposal) throw new Error("Choose a contractor and visit time first.");
   if (
     repair.proposal.id !== input.proposalId ||
     repair.proposal.timeWindow !== input.timeWindow
   ) {
-    throw new Error(`${evidenceName} must match the current proposal and visit window.`);
+    throw new Error(
+      party === "tenant"
+        ? `That reply is for an older visit. Ask ${repair.tenant.name} to confirm ${repair.proposal.timeWindow}.`
+        : `That reply is for an older visit. Ask ${repair.proposal.contractorName} to confirm ${repair.proposal.timeWindow}.`,
+    );
   }
   const sourceMessage = repair.messages.find((item) => item.id === input.sourceMessageId);
   if (sourceMessage?.party !== party) {
-    throw new Error(`${evidenceName} requires a ${party} message from this repair.`);
+    throw new Error(
+      party === "tenant"
+        ? `Choose a text from ${repair.tenant.name} to confirm access.`
+        : `Choose a text from ${repair.proposal.contractorName} to confirm the visit.`,
+    );
   }
   const expectedFrom = party === "tenant" ? repair.tenant.phone : repair.proposal.contractorPhone;
   if (sourceMessage.from !== expectedFrom) {
     throw new Error(
       party === "tenant"
-        ? "Tenant access requires a message from the current tenant."
-        : "Contractor confirmation requires a message from the proposed contractor.",
+        ? `Choose a text from ${repair.tenant.name} to confirm access.`
+        : `Choose a text from ${repair.proposal.contractorName} to confirm the visit.`,
     );
   }
   return { ...input, recordedAt: now() };
@@ -208,7 +215,7 @@ export const repairStore = {
       requiredBy: repair.requiredBy,
     });
     if (decision.kind !== "preferred_available" || decision.agreementId !== input.agreementId) {
-      throw new Error("Use the next eligible approved contractor for this repair.");
+      throw new Error("Use the next available contractor on this building's approved list.");
     }
     const agreement = store.contractorAgreements.find((item) => item.id === input.agreementId);
     if (!agreement) throw new Error("Approved contractor agreement not found for this repair.");
@@ -230,8 +237,8 @@ export const repairStore = {
       clearApprovalAndConfirmations(selectedRepair);
       selectedRepair.status = "waiting_for_approval";
       selectedRepair.activity.push(
-        activity(`${agreement.contractorName} offered a time`, "contractor", input.timeWindow),
-        activity("Waiting for your approval", "system"),
+        activity(`${agreement.contractorName} proposed a visit`, "contractor", input.timeWindow),
+        activity("Ready for your review", "system"),
       );
     });
   },
@@ -259,9 +266,9 @@ export const repairStore = {
       }
       selectedRepair.activity.push(
         activity(
-          `${update.attempt.contractorName} is unavailable`,
+          `${update.attempt.contractorName} can't make the deadline`,
           "contractor",
-          `${update.attempt.reason} Earliest availability: ${availabilityLabel(
+          `${update.attempt.reason} Next opening: ${availabilityLabel(
             update.attempt.earliestAvailableAt,
             repair.demoFixture?.organization.timeZone,
           )}.`,
@@ -283,7 +290,7 @@ export const repairStore = {
       ? managerRequest.requiredBy
       : repair.requiredBy ?? input.requiredBy;
     if (!requiredBy) {
-      throw new Error("Urgent and emergency external search needs a response deadline.");
+      throw new Error("Set a response deadline before looking for another contractor.");
     }
     const authorization = contractorSelection.startExternalSearch({
       repair,
@@ -295,7 +302,7 @@ export const repairStore = {
     const updatedRepair = mutateCase(caseId, (selectedRepair) => {
       selectedRepair.externalSearch = authorization;
       selectedRepair.activity.push(
-        activity("External contractor search started", "agent", authorization.reason),
+        activity("Looking for another contractor", "agent", authorization.reason),
       );
     });
     return { repair: updatedRepair, authorization };
@@ -313,9 +320,9 @@ export const repairStore = {
       };
       repair.activity.push(
         activity(
-          `${input.requestedBy} requested external contractor options`,
+          `${input.requestedBy} asked for more contractor options`,
           "manager",
-          `Options required by ${availabilityLabel(
+          `Needed by ${availabilityLabel(
             input.requiredBy,
             repair.demoFixture?.organization.timeZone,
           )}.`,
@@ -343,12 +350,12 @@ export const repairStore = {
     }
 
     const createdAt = now();
-    const tenantName = input.tenantName?.trim() || "New tenant";
+    const tenantName = input.tenantName?.trim() || "Tenant";
     const unit = input.unit?.trim() || "Unit not provided";
     const repair: RepairCase = {
       id: randomUUID(),
       buildingId: "18-hawthorn-court",
-      title: "New repair message",
+      title: "New repair request",
       summary: input.body,
       severity: "routine",
       trade: "general",
@@ -372,7 +379,7 @@ export const repairStore = {
   },
 
   receiveDemoMessage(input: DemoMessageInput) {
-    if (!isDemoMode()) throw new Error("The synthetic message simulator is disabled.");
+    if (!isDemoMode()) throw new Error("Demo messages are only available in demo mode.");
     return mutateCase(DEMO_CASE_ID, (repair, store) => {
       const party = input.sender;
       const from =
@@ -388,8 +395,8 @@ export const repairStore = {
         mediaId: input.mediaId,
         activityLabel:
           party === "tenant"
-            ? "Maya Chen (demo tenant) sent a simulated message"
-            : "Three Rivers Demo Plumbing sent a simulated message",
+            ? "Maya sent a demo message"
+            : "Three Rivers Demo Plumbing sent a demo message",
       });
     });
   },
@@ -402,7 +409,7 @@ export const repairStore = {
       repair.trade = input.trade;
       repair.accessNotes = input.accessNotes;
       repair.requiredBy = input.requiredBy;
-      repair.activity.push(activity("Agent reviewed the repair", "agent", input.summary));
+      repair.activity.push(activity("Fix This checked the repair details", "agent", input.summary));
     });
   },
 
@@ -416,7 +423,14 @@ export const repairStore = {
       repair.messages.push(
         message(party, body, party === "manager" ? "dashboard" : "sms", details),
       );
-      const name = party === "tenant" ? repair.tenant.name : party[0].toUpperCase() + party.slice(1);
+      const name =
+        party === "tenant"
+          ? repair.tenant.name
+          : party === "contractor"
+            ? repair.proposal?.contractorName ?? "Contractor"
+            : party === "agent"
+              ? "Fix This"
+              : "Manager";
       repair.activity.push(activity(`${name} sent a message`, party, body));
     });
   },
@@ -424,35 +438,33 @@ export const repairStore = {
   propose(caseId: string, input: ProposalInput) {
     return mutateCase(caseId, (repair) => {
       if (!repair.externalSearch) {
-        throw new Error(
-          "External contractor search must be authorized before adding an external proposal.",
-        );
+        throw new Error("Look for another contractor before adding an outside quote.");
       }
       if (repair.status === "scheduled" || repair.status === "closed") {
-        throw new Error("A proposal cannot be added to a finished repair.");
+        throw new Error("This repair is already finished, so you can't add another quote.");
       }
       repair.proposal = {
         id: randomUUID(),
         ...input,
         currency: "GBP",
         source: "external",
-        priceBasis: "External quote",
+        priceBasis: "Quoted price",
         status: "proposed",
       };
       clearApprovalAndConfirmations(repair);
       repair.status = "waiting_for_approval";
       repair.activity.push(
-        activity(`${input.contractorName} offered a time`, "contractor", input.timeWindow),
-        activity("Waiting for your approval", "system"),
+        activity(`${input.contractorName} proposed a visit`, "contractor", input.timeWindow),
+        activity("Ready for your review", "system"),
       );
     });
   },
 
   approve(caseId: string, approvedBy: string) {
     return mutateCase(caseId, (repair) => {
-      if (!repair.proposal) throw new Error("There is no contractor proposal to approve.");
+      if (!repair.proposal) throw new Error("There isn't a contractor quote to approve yet.");
       if (repair.status !== "waiting_for_approval") {
-        throw new Error("This repair is not waiting for approval.");
+        throw new Error("This repair isn't ready for approval.");
       }
       repair.approval = {
         approvedBy,
@@ -462,7 +474,13 @@ export const repairStore = {
       };
       repair.proposal.status = "approved";
       repair.status = "approved";
-      repair.activity.push(activity(`${approvedBy} approved the repair`, "manager"));
+      repair.activity.push(
+        activity(
+          `${approvedBy} approved ${repair.proposal.contractorName}`,
+          "manager",
+          repair.proposal.timeWindow,
+        ),
+      );
     });
   },
 
@@ -477,7 +495,7 @@ export const repairStore = {
         "tenant",
       );
       repair.activity.push(
-        activity("Tenant access recorded", "tenant", input.timeWindow),
+        activity(`${repair.tenant.name} confirmed access`, "tenant", input.timeWindow),
       );
     });
   },
@@ -493,7 +511,11 @@ export const repairStore = {
         "contractor",
       );
       repair.activity.push(
-        activity("Contractor confirmation recorded", "contractor", input.timeWindow),
+        activity(
+          `${repair.proposal?.contractorName ?? "Contractor"} confirmed the visit`,
+          "contractor",
+          input.timeWindow,
+        ),
       );
     });
   },
@@ -507,16 +529,16 @@ export const repairStore = {
         repair.status !== "approved" ||
         !matchesCurrentProposal(repair.approval, repair.proposal)
       ) {
-        throw new Error("The property manager must approve the proposal before booking.");
+        throw new Error("Approve the contractor and price before booking this visit.");
       }
       if (!matchesCurrentProposal(repair.tenantAccessAuthorization, repair.proposal)) {
         throw new Error(
-          "Tenant access must match the current proposal and visit window before booking.",
+          `Ask ${repair.tenant.name} to confirm access for ${repair.proposal.timeWindow}.`,
         );
       }
       if (!matchesCurrentProposal(repair.contractorConfirmation, repair.proposal)) {
         throw new Error(
-          "Contractor confirmation must match the current proposal and visit window before booking.",
+          `Ask ${repair.proposal.contractorName} to confirm ${repair.proposal.timeWindow}.`,
         );
       }
       repair.proposal.status = "booked";
@@ -527,7 +549,11 @@ export const repairStore = {
       };
       repair.status = "scheduled";
       repair.activity.push(
-        activity(`Visit booked with ${repair.proposal.contractorName}`, "agent", repair.proposal.timeWindow),
+        activity(
+          `Visit booked with ${repair.proposal.contractorName}`,
+          "agent",
+          repair.proposal.timeWindow,
+        ),
       );
       if (isDemoMode()) {
         const { to, body } = appointmentNotification(repair);
@@ -557,7 +583,9 @@ export const repairStore = {
 
   recordAppointmentNotification(caseId: string, notification: OutboundText) {
     return mutateCase(caseId, (repair) => {
-      if (!repair.appointment) throw new Error("There is no booked visit to notify.");
+      if (!repair.appointment) {
+        throw new Error("There isn't a booked visit to tell the tenant about.");
+      }
       if (repair.appointment.notificationId === notification.id) return;
       repair.appointment.notificationId = notification.id;
       repair.notifications = [notification];

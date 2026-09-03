@@ -16,17 +16,19 @@ web
 
 ## Users
 
-Property managers are the primary dashboard users. They need to understand a repair quickly, review what the agent has done, approve consequential actions, and step in when needed. Tenants participate only by text message; they should never need to open the dashboard. Contractors participate through messages and booking confirmations.
+Property managers use the dashboard to see what happened, review the proposed visit, approve the contractor and price, and step in when needed. Tenants stay on text. Contractors reply through messages and booking confirmations.
 
 ## Product Purpose
 
-Tenants report repairs by text. The agent handles follow-up and booking, while the property manager stays in control from one dashboard.
+Tenants text Fix This when something breaks. Fix This gathers the details, lines up the right contractor, and gives the property manager a clear plan to approve.
+
+Nothing is booked until the tenant confirms access and the contractor accepts the time.
 
 Success means a repair can move from the first tenant text to an approved, booked visit without the tenant opening a website or the property manager chasing updates across separate conversations.
 
 ## Positioning
 
-One shared repair record connects tenant messages, agent work, manager decisions, contractor proposals, and the final booking.
+Every message, decision, and appointment stays with the repair, so the manager can see the whole story in one place.
 
 ## Brand Personality
 
@@ -40,10 +42,10 @@ Do not make this look or behave like a generic SaaS demo. Avoid guided scenarios
 
 1. Keep the tenant on text. Every tenant-facing step must work without a web account or dashboard visit.
 2. Show the whole repair in one place. Messages, safety information, access, proposals, approvals, and bookings belong to the same record.
-3. Keep consequential decisions human-controlled. The agent may gather information and prepare a solution, but cost approval remains explicit and booking is blocked until approval exists.
+3. Keep spending decisions with the property manager. Fix This may gather information and recommend a contractor, but the manager approves the contractor and price. Booking also waits for the tenant to confirm access and the contractor to accept the time.
 4. Explain what happens next. Status labels and actions use plain English and state their real effect.
-5. Make agent work auditable. The manager can see what the agent learned, sent, proposed, and booked.
-6. Use building agreements first. The agent follows the approved contractor order and agreed pricing. External search is an explained fallback after urgent unavailability or explicit manager instruction.
+5. Show what Fix This did. The manager can see what it learned, sent, proposed, and booked.
+6. Try preferred contractors first. Fix This follows the building's approved order and agreed prices. It searches elsewhere only when the preferred contractors cannot meet an urgent deadline or the manager asks for other options.
 
 ## Accessibility & Inclusion
 

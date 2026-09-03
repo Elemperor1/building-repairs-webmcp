@@ -330,10 +330,14 @@ describe("isolated Pennsylvania demo HTTP interface", () => {
           tenantAccessAuthorization: { sourceMessageId: tenantMessageId },
           contractorConfirmation: { sourceMessageId: contractorMessageId },
           activity: expect.arrayContaining([
-            expect.objectContaining({ label: "Agent reviewed the repair" }),
-            expect.objectContaining({ label: "Tenant access recorded" }),
-            expect.objectContaining({ label: "Contractor confirmation recorded" }),
-            expect.objectContaining({ label: "Priya Shah (demo manager) approved the repair" }),
+            expect.objectContaining({ label: "Fix This checked the repair details" }),
+            expect.objectContaining({ label: "Maya Chen (demo tenant) confirmed access" }),
+            expect.objectContaining({
+              label: "Three Rivers Demo Plumbing confirmed the visit",
+            }),
+            expect.objectContaining({
+              label: "Priya Shah (demo manager) approved Three Rivers Demo Plumbing",
+            }),
           ]),
         },
       });

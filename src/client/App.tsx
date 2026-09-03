@@ -32,7 +32,7 @@ export default function App() {
     await repairs.run(
       "manager-note",
       () => api.sendManagerNote(repairs.selected!.id, body),
-      "Note sent to the agent.",
+      "Note sent.",
     );
   };
 
@@ -54,7 +54,7 @@ export default function App() {
     await repairs.run(
       "book-visit",
       () => api.book(repairs.selected!.id),
-      "Visit booked and the tenant notification is recorded.",
+      `Visit booked. The message to ${repairs.selected.tenant.name} is queued.`,
     );
   };
 
@@ -68,7 +68,7 @@ export default function App() {
           repairs.demoMode ? "Priya Shah (demo manager)" : "Property manager",
           requiredBy,
         ),
-      "The agent can now look for external options for this repair.",
+      "Fix This can now look beyond your approved contractor list.",
     );
   };
 
@@ -76,12 +76,12 @@ export default function App() {
     await repairs.run(
       "simulate-sms",
       () => ("sender" in input ? api.simulateDemoMessage(input) : api.simulateInboundText(input)),
-      "Incoming text received and added to the repair queue.",
+      "Message added to the repair.",
     );
   };
 
   const resetDemo = async () => {
-    if (!window.confirm("Reset the shared synthetic demo to a clean repair?")) return;
+    if (!window.confirm("Start the shared demo over? This clears the current repair.")) return;
     await repairs.resetDemo();
   };
 

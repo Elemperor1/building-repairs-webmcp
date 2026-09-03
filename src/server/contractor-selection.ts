@@ -123,7 +123,7 @@ export const contractorSelection = {
   } {
     const current = this.assess({ repair, agreements, now, requiredBy });
     if (current.kind !== "preferred_available" || current.agreementId !== agreementId) {
-      throw new Error("Check the next approved contractor before moving to a backup.");
+      throw new Error("Check the next contractor on the approved list before moving to a backup.");
     }
     const agreement = eligibleAgreements({ repair, agreements, now, requiredBy }).find(
       (candidate) => candidate.id === agreementId,
@@ -157,7 +157,7 @@ export const contractorSelection = {
     now,
   }: StartExternalSearchInput): ExternalSearchAuthorization {
     if (repair.severity === "routine" && !requestedByManager) {
-      throw new Error("Routine repairs need property-manager instruction before external search.");
+      throw new Error("Ask a property manager before looking beyond the approved list.");
     }
     if (repair.severity !== "routine") {
       const eligible = eligibleAgreements({ repair, agreements, now, requiredBy });
@@ -166,7 +166,7 @@ export const contractorSelection = {
           !repair.contractorAttempts.some((attempt) => attempt.agreementId === agreement.id),
       );
       if (untried) {
-        throw new Error("Try every eligible approved contractor before external search.");
+        throw new Error("Check every available contractor on the approved list first.");
       }
       const stillAvailable = eligible.some((agreement) => {
         const attempt = repair.contractorAttempts.find(
@@ -175,7 +175,7 @@ export const contractorSelection = {
         return attempt && new Date(attempt.earliestAvailableAt) <= new Date(requiredBy);
       });
       if (stillAvailable) {
-        throw new Error("An approved contractor can still meet the required response time.");
+        throw new Error("An approved contractor can still get there in time.");
       }
     }
 
@@ -184,12 +184,12 @@ export const contractorSelection = {
       requiredBy,
       requestedByManager,
       reason: requestedByManager
-        ? `${requestedByManager} requested external options for this ${repair.severity} repair.`
+        ? `${requestedByManager} asked for contractors beyond the approved list.`
         : repair.contractorAttempts.length > 0
           ? `${new Intl.ListFormat("en-GB", { style: "long", type: "conjunction" }).format(
               repair.contractorAttempts.map((attempt) => attempt.contractorName),
-            )} cannot meet the required response time for this ${repair.severity} repair.`
-          : `No eligible approved contractor can meet the required response time for this ${repair.severity} repair.`,
+            )} can't arrive before this ${repair.severity} repair's deadline.`
+          : `No approved contractor can arrive before this ${repair.severity} repair's deadline.`,
       searchBrief: {
         buildingId: repair.buildingId,
         trade: repair.trade,

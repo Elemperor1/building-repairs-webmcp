@@ -8,10 +8,10 @@ interface AppHeaderProps {
 export function AppHeader({ toolStatus, demoMode }: AppHeaderProps) {
   const statusLabel =
     toolStatus === "connected"
-      ? "Agent tools connected"
+      ? "WebMCP ready"
       : toolStatus === "error"
-        ? "Agent tools need attention"
-        : "Browser agent tools unavailable";
+        ? "WebMCP needs attention"
+        : "WebMCP isn't available in this browser";
 
   return (
     <header className="app-header">

@@ -154,7 +154,7 @@ describe("contractor selection", () => {
         requestedByManager: undefined,
         now: new Date("2026-08-26T12:30:00.000Z"),
       }),
-    ).toThrow("Routine repairs need property-manager instruction before external search.");
+    ).toThrow("Ask a property manager before looking beyond the approved list.");
   });
 
   it("blocks urgent external search while an approved contractor remains", () => {
@@ -166,7 +166,7 @@ describe("contractor selection", () => {
         requestedByManager: undefined,
         now: new Date("2026-08-26T12:30:00.000Z"),
       }),
-    ).toThrow("Try every eligible approved contractor before external search.");
+    ).toThrow("Check every available contractor on the approved list first.");
   });
 
   it("authorizes urgent external search after every approved contractor is unavailable", () => {
@@ -205,7 +205,7 @@ describe("contractor selection", () => {
       requiredBy: "2026-08-26T16:00:00.000Z",
       requestedByManager: undefined,
       reason:
-        "Hawthorn Plumbing and Backup Plumbing cannot meet the required response time for this urgent repair.",
+        "Hawthorn Plumbing and Backup Plumbing can't arrive before this urgent repair's deadline.",
       searchBrief: {
         buildingId: "18-hawthorn-court",
         trade: "plumbing",
@@ -236,7 +236,7 @@ describe("contractor selection", () => {
         requestedByManager: undefined,
         now: new Date("2026-08-26T12:30:00.000Z"),
       }),
-    ).toThrow("An approved contractor can still meet the required response time.");
+    ).toThrow("An approved contractor can still get there in time.");
   });
 
   it("explains fallback when no approved agreement can meet the deadline", () => {
@@ -249,7 +249,7 @@ describe("contractor selection", () => {
     });
 
     expect(authorization.reason).toBe(
-      "No eligible approved contractor can meet the required response time for this urgent repair.",
+      "No approved contractor can arrive before this urgent repair's deadline.",
     );
   });
 
@@ -265,7 +265,7 @@ describe("contractor selection", () => {
     expect(authorization).toMatchObject({
       authorizedAt: "2026-08-26T12:45:00.000Z",
       requestedByManager: "Priya Shah",
-      reason: "Priya Shah requested external options for this routine repair.",
+      reason: "Priya Shah asked for contractors beyond the approved list.",
       searchBrief: { trade: "plumbing", severity: "routine" },
     });
   });

@@ -43,13 +43,13 @@ export const createDemoStore = (resetAt: Date): AppStore => {
     contractorName,
     contractorPhone,
     priority,
-    coveredWork: "Synthetic plumbing call-out and first hour",
+    coveredWork: "Demo plumbing call-out, including the first hour of work",
     coveredSeverities: ["routine", "urgent", "emergency"],
     pricing: {
       basis: "fixed",
       amountPence,
       currency: "USD",
-      description: `Fixed demo call-out and first hour ($${amountPence / 100} USD)`,
+      description: "Call-out, including the first hour",
     },
     coverageHours: {
       description: "Every day, all day",
@@ -68,8 +68,8 @@ export const createDemoStore = (resetAt: Date): AppStore => {
       {
         id: DEMO_CASE_ID,
         buildingId: "demo-pa-building",
-        title: "Water dripping near the bathroom light",
-        summary: "Maya reported water dripping from the bathroom ceiling near the light.",
+        title: "Leak above the bathroom light",
+        summary: "Maya spotted water dripping from the bathroom ceiling beside the light.",
         severity: "urgent",
         trade: "plumbing",
         status: "new",
@@ -78,7 +78,7 @@ export const createDemoStore = (resetAt: Date): AppStore => {
           unit: "Unit 3B",
           phone: "+14125550101",
         },
-        accessNotes: `Proposed access window: ${addHours(resetAt, 2)} to ${addHours(resetAt, 6)}.`,
+        accessNotes: "Maya can let a contractor in during the proposed visit window.",
         requiredBy: addHours(resetAt, 6),
         createdAt,
         updatedAt: createdAt,
@@ -86,7 +86,7 @@ export const createDemoStore = (resetAt: Date): AppStore => {
           {
             id: "demo-message-initial",
             party: "tenant",
-            body: "Water is dripping from the bathroom ceiling near the light.",
+            body: "Hi, water is dripping from the bathroom ceiling near the light.",
             sentAt: createdAt,
             channel: "sms",
             from: "+14125550101",
@@ -95,7 +95,7 @@ export const createDemoStore = (resetAt: Date): AppStore => {
         activity: [
           {
             id: "demo-activity-initial",
-            label: "Maya Chen (demo tenant) reported the leak",
+            label: "Maya reported the leak",
             actor: "tenant",
             occurredAt: createdAt,
           },

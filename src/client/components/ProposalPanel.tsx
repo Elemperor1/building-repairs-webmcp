@@ -69,23 +69,23 @@ export function ProposalPanel({
 
     return (
       <section className="proposal-panel" aria-labelledby="proposal-heading">
-        <h2 id="proposal-heading">Proposed repair</h2>
+        <h2 id="proposal-heading">Contractor and visit</h2>
         <div className="empty-proposal">
           <Wrench aria-hidden="true" />
-          <h3>No contractor proposed yet</h3>
-          <p>The agent will check this building's approved contractors first.</p>
+          <h3>No contractor lined up yet</h3>
+          <p>We'll check this building's approved contractors first.</p>
         </div>
         <button className="button button--secondary" type="button" onClick={onFocusAgentNote}>
-          Ask the agent about the next contractor
+          Ask about another contractor
         </button>
         {repair.externalSearchRequest ? (
           <div className="external-requested" role="status">
-            <strong>External options requested</strong>
-            <span>The agent may search outside the approved roster for this routine repair.</span>
+            <strong>Looking beyond your approved list</strong>
+            <span>Fix This can now look for other contractors for this repair.</span>
           </div>
         ) : repair.severity === "routine" ? (
           <form className="external-request-form" onSubmit={requestOptions}>
-            <label htmlFor="external-required-by">Need external options by</label>
+            <label htmlFor="external-required-by">When do you need options?</label>
             <input
               id="external-required-by"
               type="datetime-local"
@@ -98,7 +98,7 @@ export function ProposalPanel({
               type="submit"
               disabled={!requiredBy || busy === "external-request"}
             >
-              {busy === "external-request" ? "Requesting…" : "Request external options"}
+              {busy === "external-request" ? "Saving…" : "Ask Fix This to look elsewhere"}
             </button>
           </form>
         ) : null}
@@ -112,7 +112,7 @@ export function ProposalPanel({
 
   return (
     <section className="proposal-panel" aria-labelledby="proposal-heading">
-      <h2 id="proposal-heading">Proposed repair</h2>
+      <h2 id="proposal-heading">Contractor and visit</h2>
       <div className="proposal-details">
         <div className="proposal-contractor">
           <span className="proposal-icon" aria-hidden="true">
@@ -126,7 +126,7 @@ export function ProposalPanel({
           ) : (
             <ReceiptText aria-hidden="true" />
           )}
-          {proposal.source === "agreement" ? "Approved agreement" : "External quote"}
+          {proposal.source === "agreement" ? "Contract rate" : "Outside quote"}
         </span>
         <p>
           <CalendarDays aria-hidden="true" />
@@ -141,11 +141,20 @@ export function ProposalPanel({
 
       {!isScheduled ? (
         <div className="booking-gates">
-          <h3>Booking checks</h3>
+          <h3>Before you book</h3>
           <ul>
-            <li>{managerApproved ? "✓" : "○"} Manager approved contractor and price</li>
-            <li>{tenantAuthorized ? "✓" : "○"} Tenant authorized this visit window</li>
-            <li>{contractorConfirmed ? "✓" : "○"} Contractor confirmed this visit window</li>
+            <li>
+              {managerApproved ? "✓" : "○"}{" "}
+              {managerApproved ? "You approved the contractor and price" : "Approve the contractor and price"}
+            </li>
+            <li>
+              {tenantAuthorized ? "✓" : "○"} {repair.tenant.name}{" "}
+              {tenantAuthorized ? "confirmed access" : "still needs to confirm access"}
+            </li>
+            <li>
+              {contractorConfirmed ? "✓" : "○"} {proposal.contractorName}{" "}
+              {contractorConfirmed ? "confirmed the time" : "still needs to confirm the time"}
+            </li>
           </ul>
         </div>
       ) : null}
@@ -159,7 +168,11 @@ export function ProposalPanel({
               {repair.appointment
                 ? formatTimeWindow(repair.appointment.timeWindow, timeZone)
                 : null}
-              <small>{notification ? "Tenant notification recorded" : "Tenant notification pending"}</small>
+              <small>
+                {notification
+                  ? `Message queued for ${repair.tenant.name}`
+                  : `Message to ${repair.tenant.name} still needs sending`}
+              </small>
             </span>
           </div>
           {action === "retry" ? (
@@ -169,7 +182,7 @@ export function ProposalPanel({
               onClick={onBook}
               disabled={busy === "book-visit"}
             >
-              {busy === "book-visit" ? "Retrying…" : "Retry tenant notification"}
+              {busy === "book-visit" ? "Trying again…" : "Try sending the message again"}
             </button>
           ) : null}
         </>
@@ -186,11 +199,11 @@ export function ProposalPanel({
               : busy === "book-visit"
                 ? "Booking…"
                 : managerApproved
-                  ? "Book confirmed visit"
+                  ? "Book this visit"
                   : "Approve contractor and price"}
           </button>
           <button className="button button--secondary" type="button" onClick={onFocusAgentNote}>
-            Ask the agent a question
+            Ask a question
           </button>
         </div>
       )}
@@ -200,15 +213,15 @@ export function ProposalPanel({
         <p>
           {isScheduled
             ? notification
-              ? `A tenant notification for ${repair.tenant.name} is recorded.`
-              : "The visit is booked; the tenant notification is pending retry."
+              ? `The visit details for ${repair.tenant.name} are queued.`
+              : `The visit is booked. The message to ${repair.tenant.name} still needs to be sent.`
             : !managerApproved
-              ? "Approve the current contractor and price. Access and contractor confirmation remain separate checks."
+              ? `Approve the contractor and price. We won't book until ${repair.tenant.name} and ${proposal.contractorName} confirm the same time.`
               : !tenantAuthorized
-                ? "Waiting for tenant access authorization for this visit window."
+                ? `Waiting for ${repair.tenant.name} to confirm access for this time.`
                 : !contractorConfirmed
-                  ? "Waiting for the contractor to confirm this visit window."
-                  : "All three checks match. The confirmed visit can now be booked."}
+                  ? `Waiting for ${proposal.contractorName} to confirm the time.`
+                  : "Everyone confirmed the same time. You can book the visit."}
         </p>
       </div>
     </section>

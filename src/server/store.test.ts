@@ -31,7 +31,7 @@ describe("repair workflow", () => {
 
   it("blocks booking until the property manager approves the proposal", () => {
     expect(() => repairStore.book("repair-1001")).toThrow(
-      "The property manager must approve the proposal before booking.",
+      "Approve the contractor and price before booking this visit.",
     );
   });
 
@@ -56,7 +56,9 @@ describe("repair workflow", () => {
         proposalId: "proposal-before-change",
         timeWindow: "Today, 3:30–4:30 pm",
       }),
-    ).toThrow("Tenant access must match the current proposal and visit window.");
+    ).toThrow(
+      "That reply is for an older visit. Ask Maya to confirm Today, 3:30–4:30 pm.",
+    );
   });
 
   it("records contractor confirmation against the current proposal and exact visit window", () => {
@@ -93,14 +95,14 @@ describe("repair workflow", () => {
         proposalId: "proposal-1001",
         timeWindow: "Today, 3:30–4:30 pm",
       }),
-    ).toThrow("Contractor confirmation requires a message from the proposed contractor.");
+    ).toThrow("Choose a text from Hawthorn Building Services to confirm the visit.");
   });
 
   it("blocks an approved proposal until matching tenant access is recorded", () => {
     repairStore.approve("repair-1001", "Priya Shah");
 
     expect(() => repairStore.book("repair-1001")).toThrow(
-      "Tenant access must match the current proposal and visit window before booking.",
+      "Ask Maya to confirm access for Today, 3:30–4:30 pm.",
     );
   });
 
@@ -122,7 +124,7 @@ describe("repair workflow", () => {
     });
 
     expect(() => repairStore.book("repair-1001")).toThrow(
-      "Contractor confirmation must match the current proposal and visit window before booking.",
+      "Ask Hawthorn Building Services to confirm Today, 3:30–4:30 pm.",
     );
   });
 
